@@ -24,9 +24,8 @@ intellectual property.
 Implementation, testing and documentation were produced with substantial
 assistance from Claude Opus 5.5 (model ID claude-opus-5-5), an AI model by
 Anthropic, under the direction of Scott L. Commits carrying that assistance
-are marked in the git history with a
-"Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" trailer
-(see AUTHORS.md).
+are marked in the git history with a "Co-Authored-By: Claude Opus 5.5"
+trailer (see AUTHORS.md).
 
 Legal note: whether and how copyright attaches to AI-assisted work varies by jurisdiction; this notice states the author's claim and is not legal advice.
 

@@ -22,9 +22,13 @@ Every commit made in the development environment ends with two trailer lines
 (added automatically by the `commit-msg` hook, see `CONTRIBUTING.md`):
 
 ```
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5.5 <Anthropic's no-reply address>
 Claude-Session: https://claude.ai/code/session_01P3DGbhAvhQ3fgCmzajy6ah
 ```
+
+(The exact trailer text, including Anthropic's no-reply address that GitHub
+uses to display the co-author, is configured in `[audit].trailers` in
+`governance/config.toml`.)
 
 - **Author** (`git log --format='%an'`): the person responsible for the
   commit. For this project that is Scott L.
