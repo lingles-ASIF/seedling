@@ -37,7 +37,7 @@ stem shortened (~2.5 s instead of ~1.2 s). It is fixed; it was not a security is
 7. Draw buffer always well-formed (valid commands, counts in bounds, END marker): pass
 8. No permanent state corruption after hostile input: pass
 9. Calls before `init` are safe: pass
-10. Buffer never truncates at maximum plant size (peak 42,828 of 120,000 floats): pass
+10. Buffer never truncates at maximum plant size (peak 42,730 of 120,000 floats (as of the latest gate run)): pass
 
 **Browser** (`security/browser_check.py`, headless Chromium, page opened from disk)
 

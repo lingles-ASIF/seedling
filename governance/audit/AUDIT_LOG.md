@@ -11,6 +11,7 @@ Every commit in this repository, oldest first, regenerated deterministically fro
 | 5 | 2026-11-12 10:43:19 EST | `09ef3154f6` | ci: GitHub change manager (CI, release, tracker) and project templates | 17 | +1185/-0 | not run (no gated paths changed) |
 | 6 | 2026-11-12 10:43:29 EST | `13d37642d8` | docs(governance): one-page governance map and README additions | 9 | +275/-0 | 100.0/95 PASS (fast, tree 2755fd60e7) |
 | 7 | 2026-11-12 10:43:47 EST | `9074b441c3` | chore(audit): record audit log through the governance commits | 2 | +21/-0 | not run (no gated paths changed) |
+| 8 | 2026-11-12 10:44:06 EST | `f7957d3cf6` | docs(legal): keep addresses out of NOTICE and AUTHORS | 4 | +21/-4 | not run (no gated paths changed) |
 
 ## Entries
 
@@ -138,4 +139,18 @@ Every commit in this repository, oldest first, regenerated deterministically fro
   | File | + | - |
   |---|---:|---:|
   | `governance/audit/AUDIT_LOG.md` | 20 | 0 |
+  | `governance/audit/audit_log.jsonl` | 1 | 0 |
+
+### 2026-11-12 10:44:06 EST `f7957d3cf6` docs(legal): keep addresses out of NOTICE and AUTHORS
+
+- Commit: `f7957d3cf6b2e432fa17ea8d50fb2e5b0afa365c`
+- Author: Scott L.; co-author(s): Claude Opus 5.5
+- Security gate: not run (no gated paths changed)
+- Changes: 4 file(s), +21 / -4
+
+  | File | + | - |
+  |---|---:|---:|
+  | `AUTHORS.md` | 5 | 1 |
+  | `NOTICE` | 2 | 3 |
+  | `governance/audit/AUDIT_LOG.md` | 13 | 0 |
   | `governance/audit/audit_log.jsonl` | 1 | 0 |
