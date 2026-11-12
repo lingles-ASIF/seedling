@@ -1,0 +1,19 @@
+# Keeps GitHub Actions (including the local composite action's dependencies)
+# and Cargo dependencies current. Seedling has zero Cargo dependencies today;
+# the cargo entry watches for any that appear.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories: ["/", "/.github/actions/setup"]
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    labels: [dependencies]
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+    labels: [dependencies]

@@ -1,0 +1,6 @@
+# Replace OWNER with the GitHub username of the repository owner (Scott L.).
+# Also set [project].owner_handle in governance/config.toml.
+*                        @OWNER
+/security/               @OWNER
+/.github/                @OWNER
+/governance/             @OWNER

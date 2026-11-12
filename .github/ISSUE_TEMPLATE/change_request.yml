@@ -1,0 +1,45 @@
+name: Change request
+description: Propose a change to how Seedling behaves or is built
+labels: [change-request]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Change requests are tracked on the pinned "Project status & tracker" issue and in
+        governance/TRACKER.md. Accepted requests are linked from the pull request that implements them.
+  - type: textarea
+    id: change
+    attributes:
+      label: What should change?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why? Who benefits?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Growth behaviour (Rust engine)
+        - Page / rendering
+        - Build or packaging
+        - Security
+        - Documentation
+        - Governance / workflows
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risks or trade-offs you can see
+  - type: checkboxes
+    id: ack
+    attributes:
+      label: Acknowledgement
+      options:
+        - label: I understand any change must pass the security gate (score >= 95, no critical failure) before release.
+          required: true

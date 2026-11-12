@@ -1,0 +1,50 @@
+# Daily project tracker: crates.io downloads, stars/forks/watchers, issues,
+# PRs, change requests, recent comments, release downloads. Updates
+# governance/TRACKER.md (committed through the GitHub API as the workflow
+# token, only when metrics change) and the single pinned issue
+# "Project status & tracker". Logic: tools/tracker.py (stdlib only);
+# test locally with `python3 tools/tracker.py --dry-run`.
+#
+# Action pinning: major versions; SHA pinning recommended (see ci.yml).
+name: Tracker
+
+on:
+  schedule:
+    - cron: "17 13 * * *" # daily, 13:17 UTC (jittered minute)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tracker
+  cancel-in-progress: false
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # commit governance/TRACKER.md
+      issues: write # update the status issue
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Collect metrics, update TRACKER.md and status issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 tools/tracker.py --out governance/TRACKER.md --json tracker.json --commit --update-issue
+          cat governance/TRACKER.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tracker-${{ github.run_id }}
+          path: tracker.json
+          retention-days: 30

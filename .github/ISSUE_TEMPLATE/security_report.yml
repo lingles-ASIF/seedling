@@ -1,0 +1,28 @@
+name: Security vulnerability
+description: Please do NOT report vulnerabilities in public issues
+labels: [security]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Please report security problems privately
+
+        Public issues are visible to everyone, including attackers. Instead, use GitHub's
+        **private vulnerability reporting**: open this repository's **Security** tab, choose
+        **Advisories**, then **Report a vulnerability**. Details are in SECURITY.md.
+
+        If you have already reported privately and want to discuss something non-sensitive
+        (for example, hardening ideas), you may continue below without exploit details.
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: This issue contains no exploit details, proof of concept, or unpatched vulnerability information.
+          required: true
+  - type: textarea
+    id: topic
+    attributes:
+      label: Non-sensitive topic
+    validations:
+      required: true

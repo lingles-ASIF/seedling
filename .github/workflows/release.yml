@@ -1,0 +1,156 @@
+# Release: gate -> crates.io (Trusted Publishing) -> GitHub Release.
+#
+# Triggered by pushing a tag vMAJOR.MINOR.PATCH that equals the crate version.
+# workflow_dispatch runs everything up to `cargo publish --dry-run` only.
+#
+# One-time setup (see governance/README.md): publish the FIRST version by hand
+# with `cargo publish`, then on crates.io add a Trusted Publisher for this
+# repository with workflow filename `release.yml` (and environment `release`).
+#
+# Action pinning: major versions at minimum; pinning to full commit SHAs is
+# recommended (GitHub "Secure use reference"). Dependabot keeps them current.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: gate + cargo publish --dry-run only (real releases come only from tag pushes)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Gate, version check, release notes
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      package: ${{ steps.meta.outputs.package }}
+      version: ${{ steps.meta.outputs.version }}
+      target: ${{ steps.meta.outputs.target }}
+      prev_tag: ${{ steps.meta.outputs.prev_tag }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - name: Verify tag matches crate version and manifest is publishable
+        id: meta
+        env:
+          ALLOW: ${{ github.event_name == 'workflow_dispatch' && '--allow-mismatch' || '' }}
+        run: python3 tools/release_check.py --tag "$GITHUB_REF_NAME" --github-output "$GITHUB_OUTPUT" $ALLOW
+
+      - name: Security gate (full; must score >= threshold with no critical failure)
+        run: python3 security/gate.py --full --artifact-dir dist
+
+      - name: Executive summary, changelog and audit entries
+        env:
+          PREV: ${{ steps.meta.outputs.prev_tag }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ASSET_URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}
+        run: |
+          FROM=(); [ -n "$PREV" ] && FROM=(--from "$PREV")
+          SCORE=$(python3 -c "import json;r=json.load(open('security/reports/latest.json'));print(f\"{r['score']:.1f} / {r['threshold']:.0f} ({r['verdict']})\")")
+          {
+            python3 tools/exec_summary.py "${FROM[@]}" --to HEAD --report security/reports/latest.json
+            echo "## Security gate"
+            echo
+            echo "Score **$SCORE**. Report: [security-report.md]($ASSET_URL/security-report.md) (attached), [workflow run]($RUN_URL)."
+            echo
+            echo "## Changelog"
+            echo
+            python3 tools/exec_summary.py "${FROM[@]}" --to HEAD --changelog --version "$VERSION"
+            echo "## Audit entries since ${PREV:-the first commit}"
+            echo
+            python3 tools/audit.py summary ${PREV:+--since "$PREV"} --markdown
+          } > dist/release-notes.md
+          cp security/reports/latest.md dist/security-report.md
+          cp security/reports/latest.json dist/security-report.json
+          cat dist/release-notes.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: crates.io (${{ github.event_name == 'push' && 'publish' || 'dry run' }})
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # OIDC token for crates.io Trusted Publishing
+    env:
+      PKG: ${{ needs.gate.outputs.package }}
+      TARGET: ${{ needs.gate.outputs.target }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Refuse non-dry-run dispatch
+        if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
+        run: |
+          echo "::error::Real releases are published only by pushing a v*.*.* tag."
+          exit 1
+
+      - name: cargo publish --dry-run
+        if: github.event_name == 'workflow_dispatch'
+        run: cargo publish --dry-run --locked -p "$PKG" --target "$TARGET"
+
+      - name: Authenticate with crates.io (Trusted Publishing)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
+
+      - name: cargo publish
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish --locked -p "$PKG" --target "$TARGET"
+
+  github-release:
+    name: GitHub Release
+    needs: [gate, publish]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-bundle
+          path: dist
+
+      - name: Create release with page and security report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
+            --title "Seedling $VERSION" \
+            --notes-file dist/release-notes.md \
+            dist/seedling.html dist/security-report.md dist/security-report.json
