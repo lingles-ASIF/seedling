@@ -9,6 +9,7 @@ Every commit in this repository, oldest first, regenerated deterministically fro
 | 3 | 2026-11-12 10:43:12 EST | `f9e42ee2b8` | security: scored security gate with cited sources | 7 | +964/-0 | no gate record |
 | 4 | 2026-11-12 10:43:12 EST | `bbddacc381` | build(hooks): local change monitor and deterministic audit log | 6 | +389/-0 | not run (no gated paths changed) |
 | 5 | 2026-11-12 10:43:19 EST | `09ef3154f6` | ci: GitHub change manager (CI, release, tracker) and project templates | 17 | +1185/-0 | not run (no gated paths changed) |
+| 6 | 2026-11-12 10:43:29 EST | `13d37642d8` | docs(governance): one-page governance map and README additions | 9 | +275/-0 | 100.0/95 PASS (fast, tree 2755fd60e7) |
 
 ## Entries
 
@@ -106,3 +107,22 @@ Every commit in this repository, oldest first, regenerated deterministically fro
   | `tools/fixtures/tracker_fixture.json` | 24 | 0 |
   | `tools/release_check.py` | 53 | 0 |
   | `tools/tracker.py` | 293 | 0 |
+
+### 2026-11-12 10:43:29 EST `13d37642d8` docs(governance): one-page governance map and README additions
+
+- Commit: `13d37642d8d1a01e40ddc5dbc9b029aa8f9183fc`
+- Author: Scott L.; co-author(s): Claude Opus 5.5
+- Security gate: 100.0/95 PASS (fast, tree 2755fd60e7)
+- Changes: 9 file(s), +275 / -0
+
+  | File | + | - |
+  |---|---:|---:|
+  | `governance/README-additions.md` | 65 | 0 |
+  | `governance/README.md` | 97 | 0 |
+  | `governance/audit/AUDIT_LOG.md` | 108 | 0 |
+  | `governance/audit/audit_log.jsonl` | 5 | 0 |
+  | `security/gate.py` | 0 | 0 |
+  | `tools/audit.py` | 0 | 0 |
+  | `tools/githooks.py` | 0 | 0 |
+  | `tools/install-hooks.sh` | 0 | 0 |
+  | `tools/seedling_config.py` | 0 | 0 |
