@@ -1,0 +1,97 @@
+# Seedling governance configuration: the ONE place to change anything the
+# local monitor, the security gate and the GitHub change manager depend on.
+# Read by tools/seedling_config.py (stdlib tomllib, Python 3.11+).
+#
+# Crate names, crate paths and .wasm filenames are deliberately NOT listed:
+# they are discovered at run time with `cargo metadata --no-deps` and by
+# globbing `wasm_glob`, so a split into a Cargo workspace needs no edits here.
+
+[project]
+name = "Seedling"
+repo_slug = "OWNER/seedling"          # GitHub owner/repo; set after creating the repo
+owner_handle = "OWNER"                # used in .github/CODEOWNERS (edit that file too)
+copyright_holder = "Scott L."
+copyright_year = 2026
+timezone = "America/New_York"         # audit log timestamps
+
+[build]
+wasm_target = "wasm32-unknown-unknown"
+# Built modules are found by this glob (relative to the cargo target dir root).
+wasm_glob = "target/wasm32-unknown-unknown/release/*.wasm"
+# Command that embeds the already-built .wasm into the page (run in a scratch
+# copy of the repo so the gate never rewrites the tracked seedling.html).
+embed_command = ["python3", "build.py", "--no-cargo"]
+html_artifact = "seedling.html"
+# Files/dirs copied into the scratch copy before embedding / fuzzing / browser
+# checks. Globs, relative to the repo root.
+stage_paths = ["build.py", "web/**", "security/fuzz.mjs", "security/browser_check.py"]
+# Build-std mode (sandboxes without a downloadable wasm32 std) is used only
+# when the environment variable SEEDLING_BUILD_STD=1 is set.
+build_std_flags = ["-Zbuild-std=core,panic_abort"]
+
+[publish]
+# Package to publish to crates.io. Empty = auto: the workspace member with a
+# cdylib target if exactly one exists, else the root package.
+package = ""
+# cargo publish verifies by compiling; the engine only builds for wasm32.
+publish_target = "wasm32-unknown-unknown"
+required_manifest_fields = ["description", "license", "repository"]
+
+[gate]
+threshold = 95.0
+fuzz_frames_full = 1000000
+fuzz_frames_fast = 50000
+fuzz_script = "security/fuzz.mjs"
+browser_script = "security/browser_check.py"
+reports_dir = "security/reports"
+required_files = ["LICENSE-MIT", "LICENSE-APACHE", "NOTICE", "SECURITY.md"]
+csp_required = ["default-src 'none'", "connect-src 'none'"]
+csp_forbidden = ["'unsafe-inline'", "'unsafe-eval'"]
+# Staged paths matching any of these globs make the pre-commit hook run the
+# fast gate. `**/` prefixes match at any depth, so workspace crates count too.
+trigger_globs = [
+  "**/*.rs", "**/Cargo.toml", "Cargo.lock", "build.py", "web/**",
+  "security/fuzz.mjs", "security/browser_check.py", "security/gate.py",
+  "governance/config.toml",
+]
+
+[gate.weights]
+# id = weight. Critical checks (marked in security/gate.py) fail the gate on
+# their own regardless of score.
+"build.wasm" = 10
+"wasm.imports_empty" = 8
+"clippy.default" = 6
+"clippy.pedantic" = 4
+"clippy.nursery" = 3
+"clippy.undocumented_unsafe" = 6
+"unsafe.safety_comments" = 6
+"supply.audit" = 5
+"supply.deny" = 3
+"profile.overflow_checks" = 5
+"profile.panic_abort" = 4
+"fuzz.harness" = 12
+"browser.check" = 10
+"csp.policy" = 10
+"hygiene.files" = 4
+
+[audit]
+log_md = "governance/audit/AUDIT_LOG.md"
+log_jsonl = "governance/audit/audit_log.jsonl"
+# Trailers the commit-msg hook guarantees at the end of every message.
+trailers = [
+  "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+  "Claude-Session: https://claude.ai/code/session_01P3DGbhAvhQ3fgCmzajy6ah",
+]
+# Trailer the commit-msg hook adds with the pre-commit gate result.
+gate_trailer = "Security-Gate"
+
+[tracker]
+issue_title = "Project status & tracker"
+change_request_label = "change-request"
+output = "governance/TRACKER.md"
+recent_comments = 10
+# crates.io requires a User-Agent that identifies the application.
+user_agent = "seedling-governance-tracker (+https://github.com/{repo})"  # {repo} = repo_slug
+crates_io_api = "https://crates.io/api/v1/crates/"
+github_api = "https://api.github.com"
+fixture = "tools/fixtures/tracker_fixture.json"
