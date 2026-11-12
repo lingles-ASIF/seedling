@@ -1,0 +1,20 @@
+[package]
+name = "seedling"
+version = "0.1.0"
+edition = "2024"
+description = "A pointer-guided growing branch: Rust simulation compiled to WebAssembly"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[profile.release]
+opt-level = "s"
+lto = true
+panic = "abort"
+codegen-units = 1
+strip = true
+overflow-checks = true # integer overflow traps instead of wrapping
+
+[profile.dev]
+panic = "abort"
