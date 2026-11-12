@@ -1,0 +1,10 @@
+#!/bin/sh
+# Seedling governance hook (installed by tools/install-hooks.sh via core.hooksPath).
+# Logic lives in tools/githooks.py; settings in governance/config.toml.
+ROOT=$(git rev-parse --show-toplevel) || exit 0
+ENVFILE="$(git rev-parse --absolute-git-dir)/seedling-hooks.env"
+# Local, untracked machine settings (e.g. SEEDLING_BUILD_STD=1) written by the
+# installer; an explicitly exported variable always wins.
+if [ -f "$ENVFILE" ] && [ -z "${SEEDLING_BUILD_STD+x}" ]; then . "$ENVFILE"; export SEEDLING_BUILD_STD; fi
+command -v python3 >/dev/null 2>&1 || { echo "seedling hooks: python3 not found; hook skipped" >&2; exit 0; }
+exec python3 "$ROOT/tools/githooks.py" post-commit "$@"
