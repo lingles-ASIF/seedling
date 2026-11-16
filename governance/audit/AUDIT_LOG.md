@@ -13,6 +13,7 @@ Every commit in this repository, oldest first, regenerated deterministically fro
 | 7 | 2026-11-12 10:43:47 EST | `9074b441c3` | chore(audit): record audit log through the governance commits | 2 | +21/-0 | not run (no gated paths changed) |
 | 8 | 2026-11-12 10:44:06 EST | `f7957d3cf6` | docs(legal): keep addresses out of NOTICE and AUTHORS | 4 | +21/-4 | not run (no gated paths changed) |
 | 9 | 2026-11-12 10:45:30 EST | `cd605045f6` | docs: merge governance and authorship sections; add crates.io metadata | 5 | +66/-1 | 100.0/95 PASS (fast, tree 8c4d778fae) |
+| 10 | 2026-11-15 21:21:18 EST | `53d2aa552b` | docs: set owner to Scott Lingley (@lingles-ASIF); prepare sponsorships | 15 | +90/-38 | 100.0/95 PASS (fast, tree 850c724341) |
 
 ## Entries
 
@@ -170,3 +171,28 @@ Every commit in this repository, oldest first, regenerated deterministically fro
   | `governance/audit/AUDIT_LOG.md` | 15 | 0 |
   | `governance/audit/audit_log.jsonl` | 1 | 0 |
   | `security/REPORT.md` | 1 | 1 |
+
+### 2026-11-15 21:21:18 EST `53d2aa552b` docs: set owner to Scott Lingley (@lingles-ASIF); prepare sponsorships
+
+- Commit: `53d2aa552b40d4d18e75efcad7fefc22b522dca5`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: 100.0/95 PASS (fast, tree 850c724341)
+- Changes: 15 file(s), +90 / -38
+
+  | File | + | - |
+  |---|---:|---:|
+  | `.github/CODEOWNERS` | 5 | 5 |
+  | `.github/FUNDING.yml` | 12 | 0 |
+  | `.github/ISSUE_TEMPLATE/config.yml` | 3 | 3 |
+  | `AUTHORS.md` | 9 | 4 |
+  | `Cargo.toml` | 5 | 1 |
+  | `LICENSE-APACHE` | 1 | 1 |
+  | `LICENSE-MIT` | 1 | 1 |
+  | `NOTICE` | 3 | 3 |
+  | `README.md` | 17 | 3 |
+  | `governance/README-additions.md` | 4 | 4 |
+  | `governance/README.md` | 8 | 9 |
+  | `governance/audit/AUDIT_LOG.md` | 16 | 0 |
+  | `governance/audit/audit_log.jsonl` | 1 | 0 |
+  | `governance/config.toml` | 3 | 3 |
+  | `tools/tracker.py` | 2 | 1 |
