@@ -4,7 +4,7 @@
 # These are pinned to major versions; Dependabot (dependabot.yml) proposes
 # updates. Replace tags with SHAs once the repository exists.
 name: Seedling toolchain
-description: Rust stable + wasm32 target + clippy, Node 22, Python 3.12 and optionally Playwright Chromium
+description: Rust 1.97.0 (pinned) + wasm32 target + clippy, Node 22, Python 3.12 and optionally Playwright Chromium
 inputs:
   browser:
     description: Install Playwright and headless Chromium for the browser check
@@ -13,8 +13,10 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: dtolnay/rust-toolchain@stable
+    - uses: dtolnay/rust-toolchain@master
       with:
+        # Keep in sync with rust-toolchain.toml (the pinned release).
+        toolchain: "1.97.0"
         # Keep in sync with [build].wasm_target in governance/config.toml.
         targets: wasm32-unknown-unknown
         components: clippy

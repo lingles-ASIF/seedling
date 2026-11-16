@@ -24,7 +24,9 @@ embed_command = ["python3", "build.py", "--no-cargo"]
 html_artifact = "seedling.html"
 # Files/dirs copied into the scratch copy before embedding / fuzzing / browser
 # checks. Globs, relative to the repo root.
-stage_paths = ["build.py", "web/**", "security/fuzz.mjs", "security/browser_check.py"]
+# "web/**/*" (not "web/**"): before Python 3.13, a trailing "**" matches
+# directories only, so the template was silently left out on Python 3.12.
+stage_paths = ["build.py", "web/**/*", "security/fuzz.mjs", "security/browser_check.py"]
 # Build-std mode (sandboxes without a downloadable wasm32 std) is used only
 # when the environment variable SEEDLING_BUILD_STD=1 is set.
 build_std_flags = ["-Zbuild-std=core,panic_abort"]

@@ -136,6 +136,9 @@ CHECKS = {
 }
 
 
+
+ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")  # terminal colour/style codes
+
 class Gate:
     def __init__(self, mode: str, frames: int, browser: bool, hook: bool, artifact_dir: str | None = None):
         self.mode, self.frames, self.browser, self.hook = mode, frames, browser, hook
@@ -172,8 +175,10 @@ class Gate:
 
     def clippy(self, cid, lint_args):
         cmd = ["cargo", "clippy", "--release", "--workspace", *self.args, "--", *lint_args]
-        p = sc.run(cmd, env=self.env, timeout=1200)
-        out = p.stderr + p.stdout
+        p = sc.run(cmd, env={**(self.env or {}), "CARGO_TERM_COLOR": "never"}, timeout=1200)
+        # Strip ANSI colour codes too: CI sets CARGO_TERM_COLOR=always, and a
+        # coloured "error" line would otherwise go uncounted ("0 diagnostics").
+        out = ANSI.sub("", p.stderr + p.stdout)
         diags = re.findall(r"^(warning|error)(?:\[\S+\])?: (.*)$", out, re.M)
         diags = [d for d in diags if not re.match(r"(could not compile|aborting due|\d+ warnings? emitted|build failed)", d[1])]
         flags = " ".join(lint_args)

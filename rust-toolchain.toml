@@ -1,0 +1,9 @@
+# Every build of Seedling (GitHub Actions, the development sandbox and your
+# own machine) uses this exact Rust release, so the security gate checks the
+# same compiler and linter everywhere. Upgrading is a deliberate step: change
+# the version here, run the gate, fix any new lints, commit.
+[toolchain]
+channel = "1.97.0"
+components = ["clippy"]
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"

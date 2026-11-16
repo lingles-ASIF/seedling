@@ -81,7 +81,7 @@ jobs:
           cp security/reports/latest.json dist/security-report.json
           cat dist/release-notes.md >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: release-bundle
           path: dist/
