@@ -1,0 +1,12 @@
+# Shows a "Sponsor" button on the GitHub repository page.
+# Uncomment once the GitHub Sponsors profile for lingles-ASIF is live
+# (https://github.com/sponsors), and uncomment the "Support Seedling"
+# section at the end of README.md at the same time.
+# Reference: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+# github: lingles-ASIF
+# Other platforms GitHub supports here (one username each), for example:
+# ko_fi: USERNAME
+# buy_me_a_coffee: USERNAME
+# open_collective: PROJECT
+# custom: ["https://example.org/donate"]

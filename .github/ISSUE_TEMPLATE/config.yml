@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability (private)
-    url: https://github.com/OWNER/seedling/security/advisories/new
-    about: Use GitHub private vulnerability reporting. Replace OWNER in .github/ISSUE_TEMPLATE/config.yml after creating the repository. See SECURITY.md.
+    url: https://github.com/lingles-ASIF/seedling/security/advisories/new
+    about: Use GitHub private vulnerability reporting. See SECURITY.md.
   - name: Security policy
-    url: https://github.com/OWNER/seedling/blob/main/SECURITY.md
+    url: https://github.com/lingles-ASIF/seedling/blob/main/SECURITY.md
     about: Supported versions, response times and how the security gate works.

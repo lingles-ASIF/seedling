@@ -59,12 +59,12 @@ commit conventions.
 
 ## Authorship & license
 
-Copyright (c) 2026 Scott L.
+Copyright (c) 2026 Scott Lingley
 
-Scott L. conceived and directed Seedling and holds its intellectual property.
+Scott Lingley conceived and directed Seedling and holds its intellectual property.
 Implementation, testing and documentation were produced with substantial
 assistance from Claude Opus 5.5 (`claude-opus-5-5`), an AI model by
-Anthropic, under Scott L.'s direction. Commits made with that assistance carry
+Anthropic, under Scott Lingley's direction. Commits made with that assistance carry
 a `Co-Authored-By: Claude Opus 5.5` trailer; see `AUTHORS.md`.
 
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
@@ -74,3 +74,17 @@ by you, as defined in the Apache-2.0 license, shall be dual licensed as above,
 without any additional terms or conditions. See `NOTICE`.
 
 Legal note: whether and how copyright attaches to AI-assisted work varies by jurisdiction; this notice states the author's claim and is not legal advice.
+
+<!-- Uncomment this section once https://github.com/sponsors/lingles-ASIF is live
+     (and the github: line in .github/FUNDING.yml).
+
+## Support Seedling
+
+Seedling is free and open source. It is built with substantial help from
+Claude, Anthropic's AI model, which has real usage costs. If Seedling is useful
+to you, a sponsorship helps cover those costs and keeps development going:
+[Sponsor on GitHub](https://github.com/sponsors/lingles-ASIF).
+
+Sponsorships go to the maintainer personally. They are gifts, not
+tax-deductible charitable donations, and they don't buy support guarantees.
+-->

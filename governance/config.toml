@@ -8,9 +8,9 @@
 
 [project]
 name = "Seedling"
-repo_slug = "OWNER/seedling"          # GitHub owner/repo; set after creating the repo
-owner_handle = "OWNER"                # used in .github/CODEOWNERS (edit that file too)
-copyright_holder = "Scott L."
+repo_slug = "lingles-ASIF/seedling"   # GitHub owner/repo
+owner_handle = "lingles-ASIF"         # used in .github/CODEOWNERS (edit that file too)
+copyright_holder = "Scott Lingley"
 copyright_year = 2026
 timezone = "America/New_York"         # audit log timestamps
 

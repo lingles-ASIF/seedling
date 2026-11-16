@@ -12,6 +12,7 @@ Every commit in this repository, oldest first, regenerated deterministically fro
 | 6 | 2026-11-12 10:43:29 EST | `13d37642d8` | docs(governance): one-page governance map and README additions | 9 | +275/-0 | 100.0/95 PASS (fast, tree 2755fd60e7) |
 | 7 | 2026-11-12 10:43:47 EST | `9074b441c3` | chore(audit): record audit log through the governance commits | 2 | +21/-0 | not run (no gated paths changed) |
 | 8 | 2026-11-12 10:44:06 EST | `f7957d3cf6` | docs(legal): keep addresses out of NOTICE and AUTHORS | 4 | +21/-4 | not run (no gated paths changed) |
+| 9 | 2026-11-12 10:45:30 EST | `cd605045f6` | docs: merge governance and authorship sections; add crates.io metadata | 5 | +66/-1 | 100.0/95 PASS (fast, tree 8c4d778fae) |
 
 ## Entries
 
@@ -154,3 +155,18 @@ Every commit in this repository, oldest first, regenerated deterministically fro
   | `NOTICE` | 2 | 3 |
   | `governance/audit/AUDIT_LOG.md` | 13 | 0 |
   | `governance/audit/audit_log.jsonl` | 1 | 0 |
+
+### 2026-11-12 10:45:30 EST `cd605045f6` docs: merge governance and authorship sections; add crates.io metadata
+
+- Commit: `cd605045f6128175b475140074e123389f6b2224`
+- Author: Scott L.; co-author(s): Claude Opus 5.5
+- Security gate: 100.0/95 PASS (fast, tree 8c4d778fae)
+- Changes: 5 file(s), +66 / -1
+
+  | File | + | - |
+  |---|---:|---:|
+  | `Cargo.toml` | 8 | 0 |
+  | `README.md` | 41 | 0 |
+  | `governance/audit/AUDIT_LOG.md` | 15 | 0 |
+  | `governance/audit/audit_log.jsonl` | 1 | 0 |
+  | `security/REPORT.md` | 1 | 1 |

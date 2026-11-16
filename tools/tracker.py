@@ -257,7 +257,8 @@ def main():
     ap.add_argument("--branch", default=os.environ.get("GITHUB_REF_NAME", "main"))
     a = ap.parse_args()
 
-    slug = a.repo or sc.repo_slug()
+    # The test fixture is written for the placeholder slug, so dry runs use it.
+    slug = a.repo or ("OWNER/seedling" if a.dry_run else sc.repo_slug())
     crate = a.crate
     if not crate:
         try:

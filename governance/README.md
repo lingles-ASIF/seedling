@@ -5,7 +5,7 @@ release, and leave a record at each step.
 
 | # | System | What it does | Where it lives | Where it runs |
 |---|---|---|---|---|
-| 1 | **Local change monitor** | Gates commits that touch code, stamps trailers, rebuilds the audit log | `tools/hooks/`, `tools/githooks.py`, `tools/audit.py`, `governance/audit/` | Development environment / Scott L.'s machine (git hooks) |
+| 1 | **Local change monitor** | Gates commits that touch code, stamps trailers, rebuilds the audit log | `tools/hooks/`, `tools/githooks.py`, `tools/audit.py`, `governance/audit/` | Development environment / Scott Lingley's machine (git hooks) |
 | 2 | **Security gate** (testing manager) | 15 scored checks + 2 informational, weighted score, threshold 95, critical checks | `security/gate.py`, `security/reports/`, `security/WORKS_CITED.md` | Hooks (fast), GitHub Actions (full) |
 | 3 | **Change manager** | CI with sticky PR score, tag-driven release to crates.io + GitHub Release, daily tracker | `.github/`, `tools/exec_summary.py`, `tools/tracker.py`, `tools/release_check.py` | GitHub Actions |
 
@@ -38,7 +38,7 @@ flowchart LR
 | Where | What |
 |---|---|
 | **This development sandbox** | Hooks (installed), fast gate on commits, full gate on demand with `SEEDLING_BUILD_STD=1` (no downloadable wasm32 std here), `tracker.py --dry-run`, `exec_summary.py`. No network access to GitHub or crates.io. |
-| **Scott L.'s machine** | Same hooks after `sh tools/install-hooks.sh` (plain `rustup target add wasm32-unknown-unknown`, no build-std). The first `cargo publish`, creating tags. |
+| **Scott Lingley's machine** | Same hooks after `sh tools/install-hooks.sh` (plain `rustup target add wasm32-unknown-unknown`, no build-std). The first `cargo publish`, creating tags. |
 | **GitHub Actions** | `ci.yml` (every push/PR), `release.yml` (tags `v*.*.*`, or manual dry run), `tracker.yml` (daily + manual). |
 
 ## Records produced
@@ -49,11 +49,10 @@ flowchart LR
 - **Release notes**: executive summary (what changed for users, score delta, risks), changelog section, audit entries since the last tag.
 - **Tracker**: `governance/TRACKER.md` and the pinned issue "Project status & tracker".
 
-## Manual steps for Scott L. (cannot be done from here)
+## Manual steps for Scott Lingley (cannot be done from here)
 
-1. **Create the GitHub repository** (e.g. `seedling`), then set the slug everywhere it is a placeholder:
-   `governance/config.toml` (`repo_slug`, `owner_handle`), `.github/CODEOWNERS`, `.github/ISSUE_TEMPLATE/config.yml` (replace `OWNER`).
-2. **Ask the main development session to add publishing metadata** to `Cargo.toml`: `license = "MIT OR Apache-2.0"`, `repository = "https://github.com/<you>/seedling"`, and `[package.metadata.docs.rs] targets = ["wasm32-unknown-unknown"]` (the engine only compiles for wasm32). The gate reports this under `info.publish_ready`; `release.yml` refuses to publish without it.
+1. **Create the GitHub repository** `lingles-ASIF/seedling` (empty: no README, license or .gitignore, since the project already has them). The slug is already set in `governance/config.toml`, `.github/CODEOWNERS`, `.github/ISSUE_TEMPLATE/config.yml` and `Cargo.toml`; if you choose a different name, change those four.
+2. **Sponsorships (optional)**: set up a GitHub Sponsors profile at https://github.com/sponsors, and once it is live, uncomment the `github:` line in `.github/FUNDING.yml` and the "Support Seedling" section at the end of `README.md`. Until then both stay hidden so nothing links to a page that does not exist.
 3. **Push**: `git remote add origin ...; git push -u origin main`. Check that the CI run passes.
 4. **Enable private vulnerability reporting**: Settings > Advanced Security > Private vulnerability reporting > Enable.
 5. **First crates.io release by hand** (Trusted Publishing cannot create a crate):
@@ -70,9 +69,9 @@ flowchart LR
 
 | Key | Default | Used by |
 |---|---|---|
-| `project.repo_slug` | `OWNER/seedling` | tracker (overridden by `$GITHUB_REPOSITORY` in Actions) |
-| `project.owner_handle` | `OWNER` | documentation; mirror in CODEOWNERS |
-| `project.copyright_holder` / `copyright_year` | `Scott L.` / 2026 | documentation |
+| `project.repo_slug` | `lingles-ASIF/seedling` | tracker (overridden by `$GITHUB_REPOSITORY` in Actions) |
+| `project.owner_handle` | `lingles-ASIF` | documentation; mirror in CODEOWNERS |
+| `project.copyright_holder` / `copyright_year` | `Scott Lingley` / 2026 | documentation |
 | `project.timezone` | `America/New_York` | audit log timestamps |
 | `build.wasm_target` | `wasm32-unknown-unknown` | gate builds and clippy (mirror in `.github/actions/setup`) |
 | `build.wasm_glob` | `target/wasm32-unknown-unknown/release/*.wasm` | gate: finds built modules (no filenames hard-coded) |

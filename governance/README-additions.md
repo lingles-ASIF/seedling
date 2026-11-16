@@ -26,12 +26,12 @@ commit conventions.
 
 ## Authorship & license
 
-Copyright (c) 2026 Scott L.
+Copyright (c) 2026 Scott Lingley
 
-Scott L. conceived and directed Seedling and holds its intellectual property.
+Scott Lingley conceived and directed Seedling and holds its intellectual property.
 Implementation, testing and documentation were produced with substantial
 assistance from Claude Opus 5.5 (`claude-opus-5-5`), an AI model by
-Anthropic, under Scott L.'s direction. Commits made with that assistance carry
+Anthropic, under Scott Lingley's direction. Commits made with that assistance carry
 a `Co-Authored-By: Claude Opus 5.5` trailer; see `AUTHORS.md`.
 
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
@@ -57,7 +57,7 @@ Legal note: whether and how copyright attaches to AI-assisted work varies by jur
 ```toml
 [package]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/OWNER/seedling"   # after the repo exists
+repository = "https://github.com/lingles-ASIF/seedling"   # after the repo exists
 readme = "README.md"
 
 [package.metadata.docs.rs]

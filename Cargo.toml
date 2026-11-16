@@ -7,7 +7,11 @@ license = "MIT OR Apache-2.0"
 readme = "README.md"
 keywords = ["wasm", "generative", "animation", "plant", "no-std"]
 categories = ["wasm", "no-std", "graphics", "simulation"]
-# repository = "https://github.com/OWNER/seedling"   # set once the GitHub repo exists
+authors = ["Scott Lingley"]
+repository = "https://github.com/lingles-ASIF/seedling"
+# Ship only the library and its legal/readme files to crates.io; CI, audit
+# logs and the demo page stay in the GitHub repository.
+include = ["/src/**/*.rs", "/README.md", "/LICENSE-MIT", "/LICENSE-APACHE", "/NOTICE", "/AUTHORS.md"]
 
 [lib]
 crate-type = ["cdylib"]

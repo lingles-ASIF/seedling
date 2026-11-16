@@ -2,8 +2,13 @@
 
 ## Owner and author
 
-**Scott L.** conceived and directed the Seedling project and holds its
-intellectual property. Copyright (c) 2026 Scott L., licensed under
+**Scott Lingley** (Agile Systems Information, ASIF) conceived and directed the
+Seedling project and holds its intellectual property.
+
+- GitHub: [@lingles-ASIF](https://github.com/lingles-ASIF)
+- LinkedIn: [Scott Lingley](https://www.linkedin.com/in/scott-lingley-73a34320)
+
+Copyright (c) 2026 Scott Lingley, licensed under
 MIT OR Apache-2.0 at your option (see `NOTICE`, `LICENSE-MIT`,
 `LICENSE-APACHE`).
 
@@ -11,7 +16,7 @@ MIT OR Apache-2.0 at your option (see `NOTICE`, `LICENSE-MIT`,
 
 Implementation, testing and documentation were produced with substantial
 assistance from **Claude Opus 5.5** (model ID `claude-opus-5-5`), an AI model
-by Anthropic, under the direction of Scott L. Claude is a tool used in the
+by Anthropic, under the direction of Scott Lingley. Claude is a tool used in the
 work, not an owner of it.
 
 > Legal note: whether and how copyright attaches to AI-assisted work varies by jurisdiction; this notice states the author's claim and is not legal advice.
@@ -31,7 +36,7 @@ uses to display the co-author, is configured in `[audit].trailers` in
 `governance/config.toml`.)
 
 - **Author** (`git log --format='%an'`): the person responsible for the
-  commit. For this project that is Scott L.
+  commit. For this project that is Scott Lingley.
 - **Co-Authored-By**: the commit was produced with Claude's assistance.
   GitHub shows this as a co-author on the commit page.
 - **Claude-Session**: the working session in which the change was made, so a
