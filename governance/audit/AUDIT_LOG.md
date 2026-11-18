@@ -14,6 +14,10 @@ Every commit in this repository, oldest first, regenerated deterministically fro
 | 8 | 2026-11-12 10:44:06 EST | `f7957d3cf6` | docs(legal): keep addresses out of NOTICE and AUTHORS | 4 | +21/-4 | not run (no gated paths changed) |
 | 9 | 2026-11-12 10:45:30 EST | `cd605045f6` | docs: merge governance and authorship sections; add crates.io metadata | 5 | +66/-1 | 100.0/95 PASS (fast, tree 8c4d778fae) |
 | 10 | 2026-11-15 21:21:18 EST | `53d2aa552b` | docs: set owner to Scott Lingley (@lingles-ASIF); prepare sponsorships | 15 | +90/-38 | 100.0/95 PASS (fast, tree 850c724341) |
+| 11 | 2026-11-15 21:28:36 EST | `7c78a32afd` | chore(audit): record audit log through the ownership update | 2 | +27/-0 | not run (no gated paths changed) |
+| 12 | 2026-11-16 10:54:10 EST | `afcdc571b0` | chore(tracker): update project status [skip ci] | 1 | +47/-0 | not run (no gated paths changed) |
+| 13 | 2026-11-16 19:40:32 EST | `aaad94b7cb` | fix(ci): make the security gate pass on GitHub runners | 7 | +26/-8 | 100.0/95 PASS (fast, tree 8f43924446) |
+| 14 | 2026-11-17 20:48:51 EST | `4c6d7cc053` | chore(tracker): stop committing to main; report via issue and artifacts | 8 | +29/-65 | 100.0/95 PASS (fast, tree fd976f3b14) |
 
 ## Entries
 
@@ -196,3 +200,61 @@ Every commit in this repository, oldest first, regenerated deterministically fro
   | `governance/audit/audit_log.jsonl` | 1 | 0 |
   | `governance/config.toml` | 3 | 3 |
   | `tools/tracker.py` | 2 | 1 |
+
+### 2026-11-15 21:28:36 EST `7c78a32afd` chore(audit): record audit log through the ownership update
+
+- Commit: `7c78a32afdf079a7fe721f2cd275c7ff2d79dd48`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: not run (no gated paths changed)
+- Changes: 2 file(s), +27 / -0
+
+  | File | + | - |
+  |---|---:|---:|
+  | `governance/audit/AUDIT_LOG.md` | 26 | 0 |
+  | `governance/audit/audit_log.jsonl` | 1 | 0 |
+
+### 2026-11-16 10:54:10 EST `afcdc571b0` chore(tracker): update project status [skip ci]
+
+- Commit: `afcdc571b0b2d6033ca85b64273a4a8f364771a4`
+- Author: github-actions[bot]; co-author(s): none
+- Security gate: not run (no gated paths changed)
+- Changes: 1 file(s), +47 / -0
+
+  | File | + | - |
+  |---|---:|---:|
+  | `governance/TRACKER.md` | 47 | 0 |
+
+### 2026-11-16 19:40:32 EST `aaad94b7cb` fix(ci): make the security gate pass on GitHub runners
+
+- Commit: `aaad94b7cb3a6ec1a9e782badb198d21514906d3`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: 100.0/95 PASS (fast, tree 8f43924446)
+- Changes: 7 file(s), +26 / -8
+
+  | File | + | - |
+  |---|---:|---:|
+  | `.github/actions/setup/action.yml` | 4 | 2 |
+  | `.github/workflows/ci.yml` | 1 | 1 |
+  | `.github/workflows/release.yml` | 1 | 1 |
+  | `.github/workflows/tracker.yml` | 1 | 1 |
+  | `governance/config.toml` | 3 | 1 |
+  | `rust-toolchain.toml` | 9 | 0 |
+  | `security/gate.py` | 7 | 2 |
+
+### 2026-11-17 20:48:51 EST `4c6d7cc053` chore(tracker): stop committing to main; report via issue and artifacts
+
+- Commit: `4c6d7cc053f7bd568b961e882794bb3279d094ca`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: 100.0/95 PASS (fast, tree fd976f3b14)
+- Changes: 8 file(s), +29 / -65
+
+  | File | + | - |
+  |---|---:|---:|
+  | `.github/ISSUE_TEMPLATE/change_request.yml` | 2 | 2 |
+  | `.github/workflows/tracker.yml` | 13 | 10 |
+  | `CHANGELOG.md` | 8 | 0 |
+  | `README.md` | 2 | 2 |
+  | `governance/README-additions.md` | 1 | 1 |
+  | `governance/README.md` | 2 | 2 |
+  | `governance/TRACKER.md` | 0 | 47 |
+  | `governance/config.toml` | 1 | 1 |
