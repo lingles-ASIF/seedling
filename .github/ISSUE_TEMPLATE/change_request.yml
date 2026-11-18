@@ -5,8 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Change requests are tracked on the pinned "Project status & tracker" issue and in
-        governance/TRACKER.md. Accepted requests are linked from the pull request that implements them.
+        Change requests are tracked on the pinned "Project status & tracker" issue.
+        Accepted requests are linked from the pull request that implements them.
   - type: textarea
     id: change
     attributes:

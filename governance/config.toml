@@ -90,7 +90,7 @@ gate_trailer = "Security-Gate"
 [tracker]
 issue_title = "Project status & tracker"
 change_request_label = "change-request"
-output = "governance/TRACKER.md"
+output = "TRACKER.md"  # local default for --out; CI attaches it to the run, never commits it
 recent_comments = 10
 # crates.io requires a User-Agent that identifies the application.
 user_agent = "seedling-governance-tracker (+https://github.com/{repo})"  # {repo} = repo_slug
