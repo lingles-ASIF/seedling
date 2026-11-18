@@ -6,8 +6,10 @@
 name: CI
 
 on:
+  # Pushes to main, plus pull requests. Branch pushes are covered by their
+  # pull request; running on both gave two results for the same commit.
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
 
 permissions:

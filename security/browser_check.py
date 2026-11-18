@@ -8,6 +8,23 @@ from playwright.async_api import async_playwright
 PAGE = (pathlib.Path(__file__).resolve().parent.parent / "seedling.html").as_uri()
 SHOTS = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else None
 
+
+COUNT_GREEN = """() => { const c=document.getElementById('c');
+            const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data; let n=0;
+            for (let i=0;i<d.length;i+=4) if (d[i+1]>d[i]+15 && d[i+1]>d[i+2]) n++; return n; }"""
+
+
+async def wait_for_green(pg, done, timeout_ms, step_ms=250):
+    """Poll the canvas until done(green_pixel_count) or the timeout.
+    Returns (last count, ms waited)."""
+    waited = 0
+    while True:
+        n = await pg.evaluate(COUNT_GREEN)
+        if done(n) or waited >= timeout_ms:
+            return n, waited
+        await pg.wait_for_timeout(step_ms)
+        waited += step_ms
+
 async def main():
     results = []
     async with async_playwright() as p:
@@ -24,23 +41,20 @@ async def main():
             t = k / 150
             await pg.mouse.move(500 + 220 * math.sin(t * 5), 520 - 430 * t)
             await pg.wait_for_timeout(25)
-        await pg.wait_for_timeout(2000)
+        # Wait for an outcome instead of a fixed time: how far the plant gets
+        # in a given time depends on the machine's frame rate (a slow CI runner
+        # once measured 493 px after a fixed 2 s against a 500 px bar).
+        greenish, waited = await wait_for_green(pg, lambda n: n > 500, timeout_ms=10000)
         if SHOTS: await pg.screenshot(path=str(SHOTS / "sec_bloom.png"))
-        greenish = await pg.evaluate("""() => { const c=document.getElementById('c');
-            const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data; let n=0;
-            for (let i=0;i<d.length;i+=4) if (d[i+1]>d[i]+15 && d[i+1]>d[i+2]) n++; return n; }""")
-        results.append(("plant grows and renders", greenish > 500, f"{greenish} green pixels"))
+        results.append(("plant grows and renders", greenish > 500, f"{greenish} green pixels after {waited} ms"))
 
         # Move the cursor genuinely outside the viewport (a parked in-window
         # cursor gets synthetic moves from Chrome and would re-wake the seed).
         await pg.mouse.move(500, -40, steps=4)
         await pg.evaluate("document.documentElement.dispatchEvent(new PointerEvent('pointerleave'))")
-        await pg.wait_for_timeout(2500)  # headless frame rates vary; target is ~1.2 s
+        greenish2, waited2 = await wait_for_green(pg, lambda n: n < 50, timeout_ms=8000)  # target ~1.2 s
         if SHOTS: await pg.screenshot(path=str(SHOTS / "sec_gone.png"))
-        greenish2 = await pg.evaluate("""() => { const c=document.getElementById('c');
-            const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data; let n=0;
-            for (let i=0;i<d.length;i+=4) if (d[i+1]>d[i]+15 && d[i+1]>d[i+2]) n++; return n; }""")
-        results.append(("withers back to seed on leave", greenish2 < 50, f"{greenish2} green pixels"))
+        results.append(("withers back to seed on leave", greenish2 < 50, f"{greenish2} green pixels after {waited2} ms"))
         results.append(("no runtime errors or CSP violations", not errors, "; ".join(errors)[:200] or "none"))
 
         # --- policy probes: each of these must be BLOCKED ---
