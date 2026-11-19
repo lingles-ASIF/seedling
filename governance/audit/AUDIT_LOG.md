@@ -18,6 +18,8 @@ Every commit in this repository, oldest first, regenerated deterministically fro
 | 12 | 2026-11-16 10:54:10 EST | `afcdc571b0` | chore(tracker): update project status [skip ci] | 1 | +47/-0 | not run (no gated paths changed) |
 | 13 | 2026-11-16 19:40:32 EST | `aaad94b7cb` | fix(ci): make the security gate pass on GitHub runners | 7 | +26/-8 | 100.0/95 PASS (fast, tree 8f43924446) |
 | 14 | 2026-11-17 20:48:51 EST | `4c6d7cc053` | chore(tracker): stop committing to main; report via issue and artifacts | 8 | +29/-65 | 100.0/95 PASS (fast, tree fd976f3b14) |
+| 15 | 2026-11-17 20:50:09 EST | `95bece2abe` | chore(audit): record audit log through the tracker change | 2 | +66/-0 | not run (no gated paths changed) |
+| 16 | 2026-11-18 20:10:42 EST | `2b7e4262ee` | test(browser): wait for outcomes instead of fixed delays; run CI once per change | 2 | +27/-11 | 100.0/95 PASS (fast, tree f117a740e1) |
 
 ## Entries
 
@@ -258,3 +260,27 @@ Every commit in this repository, oldest first, regenerated deterministically fro
   | `governance/README.md` | 2 | 2 |
   | `governance/TRACKER.md` | 0 | 47 |
   | `governance/config.toml` | 1 | 1 |
+
+### 2026-11-17 20:50:09 EST `95bece2abe` chore(audit): record audit log through the tracker change
+
+- Commit: `95bece2abe7cfb7b1588f03d61a10dcc54c16a20`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: not run (no gated paths changed)
+- Changes: 2 file(s), +66 / -0
+
+  | File | + | - |
+  |---|---:|---:|
+  | `governance/audit/AUDIT_LOG.md` | 62 | 0 |
+  | `governance/audit/audit_log.jsonl` | 4 | 0 |
+
+### 2026-11-18 20:10:42 EST `2b7e4262ee` test(browser): wait for outcomes instead of fixed delays; run CI once per change
+
+- Commit: `2b7e4262ee9cd4b2ee85dd9934eae2125276568d`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: 100.0/95 PASS (fast, tree f117a740e1)
+- Changes: 2 file(s), +27 / -11
+
+  | File | + | - |
+  |---|---:|---:|
+  | `.github/workflows/ci.yml` | 3 | 1 |
+  | `security/browser_check.py` | 24 | 10 |
