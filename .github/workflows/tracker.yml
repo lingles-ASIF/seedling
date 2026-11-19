@@ -44,7 +44,7 @@ jobs:
           python3 tools/tracker.py --out TRACKER.md --json tracker.json --update-issue
           cat TRACKER.md >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: tracker-${{ github.run_id }}
           path: |
