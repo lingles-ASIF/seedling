@@ -1,8 +1,9 @@
 # Daily project tracker: crates.io downloads, stars/forks/watchers, issues,
-# PRs, change requests, recent comments, release downloads. Updates
-# governance/TRACKER.md (committed through the GitHub API as the workflow
-# token, only when metrics change) and the single pinned issue
-# "Project status & tracker". Logic: tools/tracker.py (stdlib only);
+# PRs, change requests, recent comments, release downloads. Updates the
+# single pinned issue "Project status & tracker" and attaches TRACKER.md and
+# tracker.json to each run. It does not commit: main is protected by a ruleset
+# (pull requests + security gate only), and a read-only token is safer.
+# Logic: tools/tracker.py (stdlib only);
 # test locally with `python3 tools/tracker.py --dry-run`.
 #
 # Action pinning: major versions; SHA pinning recommended (see ci.yml).
@@ -25,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: write # commit governance/TRACKER.md
+      contents: read # read-only: reports go to the issue and run artifacts
       issues: write # update the status issue
     steps:
       - uses: actions/checkout@v5
@@ -36,15 +37,17 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Collect metrics, update TRACKER.md and status issue
+      - name: Collect metrics and update the status issue
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python3 tools/tracker.py --out governance/TRACKER.md --json tracker.json --commit --update-issue
-          cat governance/TRACKER.md >> "$GITHUB_STEP_SUMMARY"
+          python3 tools/tracker.py --out TRACKER.md --json tracker.json --update-issue
+          cat TRACKER.md >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v6
         with:
           name: tracker-${{ github.run_id }}
-          path: tracker.json
-          retention-days: 30
+          path: |
+            TRACKER.md
+            tracker.json
+          retention-days: 90

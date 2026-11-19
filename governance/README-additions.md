@@ -20,7 +20,7 @@ The gate must score at least 95 with no critical failure. Git hooks
 touches code and keep an audit log of every change in `governance/audit/`.
 GitHub Actions run the full gate on every push and pull request, publish
 releases to crates.io with Trusted Publishing, and keep a daily status page
-in `governance/TRACKER.md`. See `governance/README.md` for the full map,
+in the pinned "Project status & tracker" issue. See `governance/README.md` for the full map,
 `SECURITY.md` to report a vulnerability privately, and `CONTRIBUTING.md` for
 commit conventions.
 

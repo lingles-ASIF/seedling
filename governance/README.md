@@ -30,7 +30,7 @@ flowchart LR
   K --> L[exec_summary + changelog + audit entries]
   L --> M[crates.io via Trusted Publishing<br/>OIDC, no stored token]
   M --> N[GitHub Release:<br/>seedling.html + security report]
-  O[tracker.yml daily 13:17 UTC] --> P[TRACKER.md + pinned status issue]
+  O[tracker.yml daily 13:17 UTC] --> P[pinned status issue +<br/>TRACKER.md run artifact]
 ```
 
 ## What runs where
@@ -47,7 +47,7 @@ flowchart LR
 - **Audit log**: `governance/audit/AUDIT_LOG.md` + `audit_log.jsonl`, a deterministic function of git history (`python3 tools/audit.py rebuild`); complete up to the commit before the one containing it, because hooks never create commits.
 - **Gate reports**: `security/reports/latest.{md,json}` and `history/` copies by commit SHA / tree (local, git-ignored); CI artifact `security-reports-<sha>`; attached to every GitHub Release.
 - **Release notes**: executive summary (what changed for users, score delta, risks), changelog section, audit entries since the last tag.
-- **Tracker**: `governance/TRACKER.md` and the pinned issue "Project status & tracker".
+- **Tracker**: the pinned issue "Project status & tracker", plus `TRACKER.md` and `tracker.json` attached to each Tracker run (kept 90 days). It never commits to `main`.
 
 ## Manual steps for Scott Lingley (cannot be done from here)
 

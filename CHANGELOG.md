@@ -24,6 +24,14 @@ from conventional commit messages.
   gate (`security/gate.py`) with cited sources, CI / release / tracker
   workflows, and the dual MIT OR Apache-2.0 license with NOTICE and AUTHORS.
 
+### Changed
+
+- The daily tracker no longer commits to `main`. Its report goes to the
+  pinned "Project status & tracker" issue and is attached to each run as
+  `TRACKER.md` and `tracker.json`; the workflow's token is now read-only.
+  `main` is protected by a ruleset that only accepts pull requests that pass
+  the security gate.
+
 ### Security
 
 - `tick` before `init` no longer underflows an index (was a trap).
