@@ -61,7 +61,7 @@ jobs:
       - name: Sticky PR comment with the score table
         if: always() && github.event_name == 'pull_request'
         continue-on-error: true # fork PRs receive a read-only token
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
