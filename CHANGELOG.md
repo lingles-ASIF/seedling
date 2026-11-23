@@ -26,6 +26,16 @@ from conventional commit messages.
 
 ### Changed
 
+- Split into a Cargo workspace. `crates/seedling` is now a reusable,
+  platform-independent library with a public `Plant` / `Config` / `Renderer`
+  API, `#![forbid(unsafe_code)]`, no dependencies and no allocation, plus 13
+  unit tests and a doc test that run natively. `crates/seedling-wasm` is a
+  thin browser wrapper (`publish = false`) that keeps the exact same four
+  exports and draw-list format. Output was verified bit-for-bit identical to
+  the previous engine across 60,000 frames, including hostile inputs.
+- The security gate runs the library's tests as a new critical check
+  (`tests.unit`).
+
 - The daily tracker no longer commits to `main`. Its report goes to the
   pinned "Project status & tracker" issue and is attached to each run as
   `TRACKER.md` and `tracker.json`; the workflow's token is now read-only.

@@ -12,7 +12,8 @@ back underground to wait.
 
 | File | Role |
 |---|---|
-| `src/lib.rs` | The growth engine, in Rust (compiled to WebAssembly). All behavior lives here. |
+| `crates/seedling/` | The growth engine: a reusable Rust library (`Plant`, `Config`, `Renderer`). All behaviour lives here. Published to crates.io. |
+| `crates/seedling-wasm/` | Thin WebAssembly wrapper the page loads: one `Plant`, four exported functions, a flat draw list. |
 | `web/template.html` | A thin page: forwards pointer + clock to Rust, paints the shapes Rust returns. |
 | `build.py` | Compiles the Rust and embeds the `.wasm` into one self-contained HTML file. |
 | `seedling.html` | The built result. |
@@ -26,18 +27,28 @@ back underground to wait.
 ## Rebuilding after you change the Rust
 
 ```
-rustup target add wasm32-unknown-unknown   # one time
-python3 build.py
+rustup target add wasm32-unknown-unknown   # one time (the pinned toolchain may install it for you)
+cargo test -p seedling                     # library tests, run natively
+python3 build.py                           # rebuild seedling.html
 ```
 
-## Knobs worth turning (top of `src/lib.rs`)
+## Using the library in your own Rust project
 
-- `MAX_TURN` - tighter or looser curves (lower = more graceful, wider arcs)
-- `WANDER_KICK` / `WANDER_DAMP` - how much the stem meanders on its own
-- `FOG` / `FOG_REACH` - how faint the remembered stem gets, and how far behind
+`crates/seedling` is a standalone library: no `unsafe`, no dependencies, no
+allocation, and it runs on any platform. You call `Plant::step` each frame with
+the pointer position, and `Plant::draw` hands shapes to your own `Renderer`.
+See `crates/seedling/README.md` for an example.
+
+## Settings worth turning (`seedling::Config`)
+
+- `max_turn` - tighter or looser curves (lower = more graceful, wider arcs)
+- `wander_kick` / `wander_damp` - how much the stem meanders on its own
+- `fog` / `fog_reach` - how faint the remembered stem gets, and how far behind
   the tip it stays vivid
-- `GROW_MIN` / `GROW_MAX` - growth speed
-- In `add_twig`: `flower: self.rnd() < 0.2` - fraction of twigs ending in a flower
+- `grow_min` / `grow_max` - growth speed
+- `flower_chance` - share of twigs that end in a flower instead of a leaf
+
+Every value is clamped into a safe range, so no setting can break the plant.
 
 ## Security and governance
 

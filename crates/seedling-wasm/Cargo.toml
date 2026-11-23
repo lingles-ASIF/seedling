@@ -1,0 +1,16 @@
+[package]
+name = "seedling-wasm"
+description = "Browser (WebAssembly) wrapper for the seedling growth engine, used by seedling.html"
+publish = false # an implementation detail of the demo page, not a crates.io package
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+seedling = { path = "../seedling", version = "0.1.0" }

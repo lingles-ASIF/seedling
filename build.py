@@ -20,7 +20,7 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent
-WASM = ROOT / "target/wasm32-unknown-unknown/release/seedling.wasm"
+WASM = ROOT / "target/wasm32-unknown-unknown/release/seedling_wasm.wasm"
 TEMPLATE = ROOT / "web/template.html"
 OUT = ROOT / "seedling.html"
 PLACEHOLDER = "__WASM_BASE64__"
@@ -51,7 +51,7 @@ def content_security_policy(html: str) -> str:
 
 
 def compile_rust() -> None:
-    cmd = ["cargo", "build", "--release", "--target", "wasm32-unknown-unknown"]
+    cmd = ["cargo", "build", "--release", "-p", "seedling-wasm", "--target", "wasm32-unknown-unknown"]
     print("$", " ".join(cmd))
     try:
         subprocess.run(cmd, cwd=ROOT, check=True)

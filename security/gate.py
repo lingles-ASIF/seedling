@@ -51,6 +51,7 @@ REFS = {
                        "https://doc.rust-lang.org/nomicon/what-unsafe-does.html"),
     "cargo-profiles": ("The Cargo Book: Profiles (overflow-checks, panic)",
                        "https://doc.rust-lang.org/cargo/reference/profiles.html"),
+    "cargo-test": ("The Cargo Book: cargo test", "https://doc.rust-lang.org/cargo/commands/cargo-test.html"),
     "cargo-publishing": ("The Cargo Book: Publishing on crates.io",
                          "https://doc.rust-lang.org/cargo/reference/publishing.html"),
     "rustsec": ("RustSec Advisory Database (and cargo-audit)", "https://rustsec.org/"),
@@ -101,6 +102,8 @@ REFS = {
 # id -> (title, critical, standard/CWE, refs)
 CHECKS = {
     "build.wasm": ("Release build to wasm32 succeeds", True, "build integrity", ["cargo-profiles"]),
+    "tests.unit": ("Library unit and doc tests pass (host)", True, "CWE-20 (behaviour incl. hostile input)",
+                   ["cargo-test", "cwe-20", "owasp-asvs"]),
     "wasm.imports_empty": ("WebAssembly module imports nothing from the host", True,
                            "least privilege; WebAssembly JS API", ["wasm-spec", "mdn-wasm-imports"]),
     "clippy.default": ("Clippy default lints, -D warnings", False, "CWE-758 (static analysis)",
@@ -188,6 +191,25 @@ class Gate:
             tail = out.strip().splitlines()[-1] if out.strip() else ""
             first = "; ".join(f"{k}: {m}" for k, m in diags[:3]) or tail
             self.record(cid, "fail", f"`cargo clippy -- {flags}`: exit {p.returncode}, {len(diags)} diagnostics. {first}")
+
+    def check_tests(self):
+        """Run the published library's tests natively (no wasm target, no
+        build-std): the engine is platform-independent by design."""
+        try:
+            pkg = sc.publish_package()["name"]
+        except RuntimeError as e:
+            return self.record("tests.unit", "fail", str(e))
+        cmd = ["cargo", "test", "-p", pkg]
+        p = sc.run(cmd, env={"CARGO_TERM_COLOR": "never"}, timeout=1200)
+        out = ANSI.sub("", p.stdout + p.stderr)
+        runs = re.findall(r"test result: (\w+)\. (\d+) passed; (\d+) failed", out)
+        passed = sum(int(r[1]) for r in runs)
+        failed = sum(int(r[2]) for r in runs)
+        if p.returncode == 0 and runs and failed == 0:
+            self.record("tests.unit", "pass", f"`{' '.join(cmd)}`: {passed} passed, 0 failed")
+        else:
+            bad = [ln for ln in out.splitlines() if "FAILED" in ln or "panicked" in ln or ln.startswith("error")][:3]
+            self.record("tests.unit", "fail", f"`{' '.join(cmd)}`: exit {p.returncode}, {passed} passed, {failed} failed. " + " | ".join(bad))
 
     def check_unsafe(self):
         """Count unsafe blocks / fns / impls; every block and impl needs a
@@ -386,6 +408,7 @@ class Gate:
         print(f"Seedling security gate ({self.mode} mode, build-std={'on' if sc.build_std() else 'off'})", flush=True)
         try:
             self.check_build()
+            self.check_tests()
             self.clippy("clippy.default", ["-D", "warnings"])
             self.clippy("clippy.pedantic", ["-D", "warnings", "-D", "clippy::pedantic"])
             self.clippy("clippy.nursery", ["-D", "warnings", "-D", "clippy::nursery"])
