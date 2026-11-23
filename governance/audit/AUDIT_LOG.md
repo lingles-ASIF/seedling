@@ -20,6 +20,14 @@ Every commit in this repository, oldest first, regenerated deterministically fro
 | 14 | 2026-11-17 20:48:51 EST | `4c6d7cc053` | chore(tracker): stop committing to main; report via issue and artifacts | 8 | +29/-65 | 100.0/95 PASS (fast, tree fd976f3b14) |
 | 15 | 2026-11-17 20:50:09 EST | `95bece2abe` | chore(audit): record audit log through the tracker change | 2 | +66/-0 | not run (no gated paths changed) |
 | 16 | 2026-11-18 20:10:42 EST | `2b7e4262ee` | test(browser): wait for outcomes instead of fixed delays; run CI once per change | 2 | +27/-11 | 100.0/95 PASS (fast, tree f117a740e1) |
+| 17 | 2026-11-18 20:10:54 EST | `2a428ce09d` | chore(audit): record audit log through the browser-check fix | 2 | +28/-0 | not run (no gated paths changed) |
+| 18 | 2026-11-18 20:10:54 EST | `19abb193c3` | ci: Bump actions/checkout from 5 to 7 | 3 | +4/-4 | not run (no gated paths changed) |
+| 19 | 2026-11-18 20:10:56 EST | `2e459031a0` | ci: Bump actions/upload-artifact from 6 to 7 | 3 | +3/-3 | not run (no gated paths changed) |
+| 20 | 2026-11-18 20:20:52 EST | `e66e2e73df` | ci: Bump actions/setup-python from 6 to 7 | 1 | +1/-1 | not run (no gated paths changed) |
+| 21 | 2026-11-18 20:20:54 EST | `e9833623c5` | ci: Bump actions/setup-python from 6 to 7 in /.github/actions/setup | 1 | +1/-1 | not run (no gated paths changed) |
+| 22 | 2026-11-18 20:21:52 EST | `16a549a35c` | ci: Bump actions/github-script from 8 to 9 | 1 | +1/-1 | not run (no gated paths changed) |
+| 23 | 2026-11-18 20:21:52 EST | `6b3c5c4e20` | ci: Bump actions/download-artifact from 4 to 8 | 1 | +1/-1 | not run (no gated paths changed) |
+| 24 | 2026-11-22 20:46:00 EST | `8d8b65eda6` | refactor: split into the seedling library and a thin seedling-wasm wrapper | 22 | +1533/-799 | 100.0/95 PASS (fast, tree b82a7c796a) |
 
 ## Entries
 
@@ -284,3 +292,117 @@ Every commit in this repository, oldest first, regenerated deterministically fro
   |---|---:|---:|
   | `.github/workflows/ci.yml` | 3 | 1 |
   | `security/browser_check.py` | 24 | 10 |
+
+### 2026-11-18 20:10:54 EST `2a428ce09d` chore(audit): record audit log through the browser-check fix
+
+- Commit: `2a428ce09d06478ee93267bf47b4a174b1d79da7`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: not run (no gated paths changed)
+- Changes: 2 file(s), +28 / -0
+
+  | File | + | - |
+  |---|---:|---:|
+  | `governance/audit/AUDIT_LOG.md` | 26 | 0 |
+  | `governance/audit/audit_log.jsonl` | 2 | 0 |
+
+### 2026-11-18 20:10:54 EST `19abb193c3` ci: Bump actions/checkout from 5 to 7
+
+- Commit: `19abb193c3fd5c8cf0c21917687e17bec9edf8de`
+- Author: dependabot[bot]; co-author(s): none
+- Security gate: not run (no gated paths changed)
+- Changes: 3 file(s), +4 / -4
+
+  | File | + | - |
+  |---|---:|---:|
+  | `.github/workflows/ci.yml` | 1 | 1 |
+  | `.github/workflows/release.yml` | 2 | 2 |
+  | `.github/workflows/tracker.yml` | 1 | 1 |
+
+### 2026-11-18 20:10:56 EST `2e459031a0` ci: Bump actions/upload-artifact from 6 to 7
+
+- Commit: `2e459031a02640ff0f34fd9462650160b75c4f71`
+- Author: dependabot[bot]; co-author(s): none
+- Security gate: not run (no gated paths changed)
+- Changes: 3 file(s), +3 / -3
+
+  | File | + | - |
+  |---|---:|---:|
+  | `.github/workflows/ci.yml` | 1 | 1 |
+  | `.github/workflows/release.yml` | 1 | 1 |
+  | `.github/workflows/tracker.yml` | 1 | 1 |
+
+### 2026-11-18 20:20:52 EST `e66e2e73df` ci: Bump actions/setup-python from 6 to 7
+
+- Commit: `e66e2e73dfe41622807a8046bb23860aa75df8db`
+- Author: dependabot[bot]; co-author(s): none
+- Security gate: not run (no gated paths changed)
+- Changes: 1 file(s), +1 / -1
+
+  | File | + | - |
+  |---|---:|---:|
+  | `.github/workflows/tracker.yml` | 1 | 1 |
+
+### 2026-11-18 20:20:54 EST `e9833623c5` ci: Bump actions/setup-python from 6 to 7 in /.github/actions/setup
+
+- Commit: `e9833623c5435712dd66f540168cede4368c959c`
+- Author: dependabot[bot]; co-author(s): none
+- Security gate: not run (no gated paths changed)
+- Changes: 1 file(s), +1 / -1
+
+  | File | + | - |
+  |---|---:|---:|
+  | `.github/actions/setup/action.yml` | 1 | 1 |
+
+### 2026-11-18 20:21:52 EST `16a549a35c` ci: Bump actions/github-script from 8 to 9
+
+- Commit: `16a549a35cfc348b1a1cfcd05fc0c34d6b6a1cda`
+- Author: dependabot[bot]; co-author(s): none
+- Security gate: not run (no gated paths changed)
+- Changes: 1 file(s), +1 / -1
+
+  | File | + | - |
+  |---|---:|---:|
+  | `.github/workflows/ci.yml` | 1 | 1 |
+
+### 2026-11-18 20:21:52 EST `6b3c5c4e20` ci: Bump actions/download-artifact from 4 to 8
+
+- Commit: `6b3c5c4e201b776d3d9c601b07a2b4ec35ef6ad2`
+- Author: dependabot[bot]; co-author(s): none
+- Security gate: not run (no gated paths changed)
+- Changes: 1 file(s), +1 / -1
+
+  | File | + | - |
+  |---|---:|---:|
+  | `.github/workflows/release.yml` | 1 | 1 |
+
+### 2026-11-22 20:46:00 EST `8d8b65eda6` refactor: split into the seedling library and a thin seedling-wasm wrapper
+
+- Commit: `8d8b65eda6ae6edce5d1d28972f509a510933271`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: 100.0/95 PASS (fast, tree b82a7c796a)
+- Changes: 22 file(s), +1533 / -799
+
+  | File | + | - |
+  |---|---:|---:|
+  | `.github/workflows/release.yml` | 2 | 2 |
+  | `CHANGELOG.md` | 10 | 0 |
+  | `Cargo.lock` | 7 | 0 |
+  | `Cargo.toml` | 7 | 16 |
+  | `README.md` | 20 | 9 |
+  | `build.py` | 2 | 2 |
+  | `crates/seedling-wasm/Cargo.toml` | 16 | 0 |
+  | `crates/seedling-wasm/src/lib.rs` | 151 | 0 |
+  | `crates/seedling/AUTHORS.md` | 1 | 0 |
+  | `crates/seedling/Cargo.toml` | 18 | 0 |
+  | `crates/seedling/LICENSE-APACHE` | 1 | 0 |
+  | `crates/seedling/LICENSE-MIT` | 1 | 0 |
+  | `crates/seedling/NOTICE` | 1 | 0 |
+  | `crates/seedling/README.md` | 65 | 0 |
+  | `crates/seedling/src/lib.rs` | 854 | 0 |
+  | `crates/seedling/src/math.rs` | 125 | 0 |
+  | `crates/seedling/src/tests.rs` | 220 | 0 |
+  | `governance/config.toml` | 6 | 5 |
+  | `security/fuzz.mjs` | 1 | 1 |
+  | `security/gate.py` | 23 | 0 |
+  | `seedling.html` | 2 | 2 |
+  | `src/lib.rs` | 0 | 762 |
