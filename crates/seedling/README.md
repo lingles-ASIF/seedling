@@ -45,6 +45,21 @@ plant.step(1.0 / 60.0, pointer);
 plant.draw(&mut MyCanvas);
 ```
 
+## Growth styles
+
+- `Style::Vine` (always available): the curving vine described above.
+- `Style::CircuitBirch` (Cargo feature `circuit`): a circuit-board tree. A
+  straight trunk rises toward the pointer; branches route toward it like
+  printed-circuit traces (straight runs, 45° turns) and end in birch leaves.
+  Branch length, trunk height and branch spacing are `Config` settings.
+
+```toml
+seedling = { version = "0.1", features = ["circuit"] }
+```
+
+Leaves and flowers can carry links (`Config::links`), handed out in growth
+order; your renderer receives the link index on each `Leaf` and `Flower`.
+
 ## Live demo
 
 The repository includes `seedling.html`, a self-contained page that runs this

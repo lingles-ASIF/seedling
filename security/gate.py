@@ -205,14 +205,21 @@ class Gate:
             pkg = sc.publish_package()["name"]
         except RuntimeError as e:
             return self.record("tests.unit", "fail", str(e))
+        # Both with only the default features and with every optional feature
+        # (e.g. `circuit`), so bolt-on code is tested and the core stands alone.
         cmd = ["cargo", "test", "-p", pkg]
         p = sc.run(cmd, env={"CARGO_TERM_COLOR": "never"}, timeout=1200)
         out = ANSI.sub("", p.stdout + p.stderr)
+        if p.returncode == 0:
+            cmd = ["cargo", "test", "-p", pkg, "--all-features"]
+            p = sc.run(cmd, env={"CARGO_TERM_COLOR": "never"}, timeout=1200)
+            out += ANSI.sub("", p.stdout + p.stderr)
+            cmd = ["cargo", "test", "-p", pkg, "[--all-features]"]
         runs = re.findall(r"test result: (\w+)\. (\d+) passed; (\d+) failed", out)
         passed = sum(int(r[1]) for r in runs)
         failed = sum(int(r[2]) for r in runs)
         if p.returncode == 0 and runs and failed == 0:
-            self.record("tests.unit", "pass", f"`{' '.join(cmd)}`: {passed} passed, 0 failed")
+            self.record("tests.unit", "pass", f"`{' '.join(cmd)}` (default and all features): {passed} passed, 0 failed")
         else:
             bad = [ln for ln in out.splitlines() if "FAILED" in ln or "panicked" in ln or ln.startswith("error")][:3]
             self.record("tests.unit", "fail", f"`{' '.join(cmd)}`: exit {p.returncode}, {passed} passed, {failed} failed. " + " | ".join(bad))

@@ -35,8 +35,10 @@ function fail(kind, detail) {
   failures.get(kind).count++;
 }
 
-// Payload sizes; leaf and flower end with a link index (-1 = none).
-const ARITY = { 1: -1, 2: 7, 3: 8, 4: 4 };
+// Payload sizes. Leaf: ..., link, shape. Flower: ..., link. (link -1 = none)
+const ARITY = { 1: -1, 2: 8, 3: 8, 4: 4 };
+const LINK_AT = { 2: 6, 3: 7 }; // payload position of the link index
+const STROKE_KINDS = new Set([0, 1, 2, 3]); // stem, twig, trunk, trace
 let linksConfigured = 0; // what the harness last passed to configure()
 function validate(ex, len, ctx) {
   const mem = ex.memory.buffer.byteLength;
@@ -53,12 +55,13 @@ function validate(ex, len, ctx) {
     if (a === undefined) return fail('unknown command', `${ctx} cmd=${c}`);
     if (a === -1) {
       const kind = b[i++], n = b[i++];
-      if ((kind !== 0 && kind !== 1) || !Number.isInteger(n) || n < 1 || i + n * 4 > len) return fail('bad stroke', ctx);
+      if (!STROKE_KINDS.has(kind) || !Number.isInteger(n) || n < 1 || i + n * 4 > len) return fail('bad stroke', ctx);
       i += n * 4;
     } else {
       if (i + a > len) return fail('truncated command', ctx);
+      if (c === 2 && b[i + 7] !== 0 && b[i + 7] !== 1) return fail('bad leaf shape', `${ctx} shape=${b[i + 7]}`);
       if (c === 2 || c === 3) {
-        const link = b[i + a - 1];
+        const link = b[i + LINK_AT[c]];
         if (link !== -1 && !(Number.isInteger(link) && link >= 0 && link < Math.min(linksConfigured, 64)))
           return fail('bad link index', `${ctx} link=${link} configured=${linksConfigured}`);
         if (link >= 0) {
@@ -96,7 +99,12 @@ for (let it = 0; it < ITER; it++) {
     if (call(ex, 'init', args, `iter ${it}`) === undefined && failures.has('trap in init')) { ex = await fresh(); call(ex, 'init', [1000, 700, 1], 'recover'); }
     continue;
   }
-  if (r < 0.004) { // reconfigure: link counts incl. hostile ones (u32 wraps from JS)
+  if (r < 0.005) { // restyle with hostile lengths (style codes incl. unknown ones)
+    const style = [0, 1, 1, 1, 2, 4294967295][(rnd() * 6) | 0];
+    call(ex, 'set_style', [style, pick(), pick(), pick()], `iter ${it}`);
+    continue;
+  }
+  if (r < 0.007) { // reconfigure: link counts incl. hostile ones (u32 wraps from JS)
     const links = [0, 1, 3, 12, 64, 65, 255, 256, 4294967295, -1][(rnd() * 10) | 0];
     const persist = [0, 1, -1, 2 ** 31 - 1][(rnd() * 4) | 0];
     if (call(ex, 'configure', [links, persist], `iter ${it}`) !== undefined || true) {
@@ -141,28 +149,31 @@ for (let it = 0; it < ITER; it++) {
   console.log(`capacity: peak draw buffer ${maxLen.toLocaleString()} of 120,000 floats`);
 }
 
-// 5. Links are really handed out: with 5 configured, all of 0..4 appear.
-{
+// 5. Links are really handed out: with 5 configured, all of 0..4 appear,
+//    on the vine and on the circuit tree.
+for (const style of [0, 1]) {
   const e = await fresh();
   e.init(1000, 700, 11);
+  e.set_style(style, 160, 0, 26);
   e.configure(5, 1);
   linksConfigured = 5;
   const seen = new Set();
   for (let k = 0; k < 900; k++) {
     const t = k / 900;
-    const len = e.tick(1 / 60, 500 + 250 * Math.sin(t * 6), 600 - 520 * t, 1);
+    const len = e.tick(1 / 60, 500 + (style ? 380 : 250) * Math.sin(t * (style ? 23 : 6)), 600 - 520 * t, 1);
     if (k % 50 === 0) validate(e, len, `links k=${k}`);
     const b = new Float32Array(e.memory.buffer, e.out_ptr(), len);
     for (let i = 0; i < len;) {
       const c = b[i++];
       if (c === 0) break;
       if (c === 1) { i++; const n = b[i++]; i += n * 4; continue; }
-      if (c === 2 || c === 3) { const l = b[i + ARITY[c] - 1]; if (l >= 0) seen.add(l); }
+      if (c === 2 || c === 3) { const l = b[i + LINK_AT[c]]; if (l >= 0) seen.add(l); }
       i += ARITY[c];
     }
   }
-  if ([0, 1, 2, 3, 4].some(l => !seen.has(l))) fail('links not handed out', `saw ${[...seen].sort()}`);
-  else console.log('links: all 5 configured links appeared on leaves/flowers');
+  const name = style ? 'circuit birch' : 'vine';
+  if ([0, 1, 2, 3, 4].some(l => !seen.has(l))) fail('links not handed out', `${name}: saw ${[...seen].sort()}`);
+  else console.log(`links (${name}): all 5 configured links appeared`);
 }
 
 console.log(`fuzzed ${ITER.toLocaleString()} frames`);

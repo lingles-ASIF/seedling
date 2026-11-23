@@ -14,5 +14,14 @@ repository.workspace = true
 # files here are symlinks to the repository root; cargo packages their contents.
 include = ["/src/**/*.rs", "/README.md", "/LICENSE-MIT", "/LICENSE-APACHE", "/NOTICE", "/AUTHORS.md"]
 
+[features]
+default = []
+# Circuit-board trees (Style::CircuitBirch, ...). Optional: without it, only
+# the vine is compiled in.
+circuit = []
+
+[package.metadata.docs.rs]
+all-features = true
+
 [lints.rust]
 unsafe_code = "forbid"
