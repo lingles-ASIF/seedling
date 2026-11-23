@@ -28,6 +28,8 @@ Every commit in this repository, oldest first, regenerated deterministically fro
 | 22 | 2026-11-18 20:21:52 EST | `16a549a35c` | ci: Bump actions/github-script from 8 to 9 | 1 | +1/-1 | not run (no gated paths changed) |
 | 23 | 2026-11-18 20:21:52 EST | `6b3c5c4e20` | ci: Bump actions/download-artifact from 4 to 8 | 1 | +1/-1 | not run (no gated paths changed) |
 | 24 | 2026-11-22 20:46:00 EST | `8d8b65eda6` | refactor: split into the seedling library and a thin seedling-wasm wrapper | 22 | +1533/-799 | 100.0/95 PASS (fast, tree b82a7c796a) |
+| 25 | 2026-11-22 20:46:11 EST | `6ae7785ecf` | chore(audit): record audit log through the library split | 2 | +130/-0 | not run (no gated paths changed) |
+| 26 | 2026-11-22 20:57:50 EST | `21f1434036` | feat: leaf links (handed out in growth order), persist, and rest | 11 | +881/-104 | 100.0/95 PASS (fast, tree 939f61b739) |
 
 ## Entries
 
@@ -406,3 +408,36 @@ Every commit in this repository, oldest first, regenerated deterministically fro
   | `security/gate.py` | 23 | 0 |
   | `seedling.html` | 2 | 2 |
   | `src/lib.rs` | 0 | 762 |
+
+### 2026-11-22 20:46:11 EST `6ae7785ecf` chore(audit): record audit log through the library split
+
+- Commit: `6ae7785ecf6f6441cd5482f67cd247822bc2b7ee`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: not run (no gated paths changed)
+- Changes: 2 file(s), +130 / -0
+
+  | File | + | - |
+  |---|---:|---:|
+  | `governance/audit/AUDIT_LOG.md` | 122 | 0 |
+  | `governance/audit/audit_log.jsonl` | 8 | 0 |
+
+### 2026-11-22 20:57:50 EST `21f1434036` feat: leaf links (handed out in growth order), persist, and rest
+
+- Commit: `21f14340369450125ced1c1d1d28371369dc10be`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: 100.0/95 PASS (fast, tree 939f61b739)
+- Changes: 11 file(s), +881 / -104
+
+  | File | + | - |
+  |---|---:|---:|
+  | `CHANGELOG.md` | 13 | 0 |
+  | `README.md` | 33 | 0 |
+  | `crates/seedling-wasm/src/lib.rs` | 35 | 10 |
+  | `crates/seedling/src/lib.rs` | 149 | 34 |
+  | `crates/seedling/src/tests.rs` | 99 | 0 |
+  | `governance/config.toml` | 4 | 0 |
+  | `security/browser_check.py` | 144 | 39 |
+  | `security/fuzz.mjs` | 52 | 3 |
+  | `security/gate.py` | 8 | 2 |
+  | `seedling.html` | 173 | 9 |
+  | `web/template.html` | 171 | 7 |
