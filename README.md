@@ -24,6 +24,37 @@ back underground to wait.
 | `.github/` | CI, release and tracker workflows; issue and PR templates. |
 | `LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE`, `AUTHORS.md` | Dual license and authorship. |
 
+## Turning leaves into links
+
+Leaves and twig flowers can be links to other pages. Edit the settings block
+at the top of `<body>` in `web/template.html` (or directly in `seedling.html`):
+
+```json
+{
+  "links": [
+    { "href": "about.html", "label": "About us" },
+    { "href": "https://example.com/shop", "label": "Shop" }
+  ],
+  "persist": true,
+  "newTab": false
+}
+```
+
+- **Order:** the first leaf or flower to grow gets the first link, the next
+  gets the second, and so on. If a linked branch withers, its link moves to
+  the next leaf that grows, so every link stays reachable.
+- **Safety:** only `https:`, `http:`, `mailto:` and relative addresses are
+  accepted; anything else (such as `javascript:`) is skipped. Labels are shown
+  as plain text, never as HTML.
+- **Everyone can use them:** linked leaves get a gold ring and a label on
+  hover. Keyboard and screen-reader visitors get the same links as a list that
+  appears when they press Tab.
+- **Persist:** with links, the grown plant stays when the pointer leaves, so
+  visitors can come back and click; returning to the seed still resets it.
+  Set `"persist": false` for the original wither-away behaviour.
+- **While the pointer is on a link, the plant holds still**, so reaching for a
+  leaf never makes the branch chase or prune itself.
+
 ## Rebuilding after you change the Rust
 
 ```
@@ -47,6 +78,8 @@ See `crates/seedling/README.md` for an example.
   the tip it stays vivid
 - `grow_min` / `grow_max` - growth speed
 - `flower_chance` - share of twigs that end in a flower instead of a leaf
+- `links` - how many links to hand out to leaves and flowers (up to 64)
+- `persist` - keep the grown plant when the pointer leaves
 
 Every value is clamped into a safe range, so no setting can break the plant.
 

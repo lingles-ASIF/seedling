@@ -66,6 +66,8 @@ use math::{clamp, dist, fl, norm, rotate, sanitize, sin, smooth, sqrt};
 pub const MAX_STEM_POINTS: usize = 4000;
 /// Most side twigs (each ending in a leaf or flower) a plant keeps at once.
 pub const MAX_TWIGS: usize = 600;
+/// Most links a plant hands out (see [`Config::links`]).
+pub const MAX_LINKS: u8 = 64;
 
 const SEG: f32 = 6.0; // distance between stored stem samples, px
 const STEER_GAIN: f32 = 3.4;
@@ -113,6 +115,17 @@ pub struct Config {
     /// Share of side twigs that end in a flower instead of a leaf, 0..=1.
     /// Default 0.2.
     pub flower_chance: f32,
+    /// How many links to hand out to leaves and twig flowers, in growth
+    /// order: the first to grow gets link 0, the next link 1, and so on.
+    /// When a linked branch withers its link goes to the next one that grows,
+    /// so every link stays reachable. See [`Leaf::link`]. Default 0;
+    /// clamped to 0..=[`MAX_LINKS`].
+    pub links: u8,
+    /// Keep the grown plant when the pointer leaves, instead of withering
+    /// home. Returning the pointer to the seed still buries it. Default
+    /// `false` (the classic behaviour); pages with links usually want `true`
+    /// so visitors can come back and click.
+    pub persist: bool,
 }
 
 impl Config {
@@ -126,6 +139,22 @@ impl Config {
         fog: 0.13,
         fog_reach: 260.0,
         flower_chance: 0.2,
+        links: 0,
+        persist: false,
+    };
+
+    /// All-zero placeholder used inside a blank plant (never applied).
+    const ZERO: Self = Self {
+        max_turn: 0.0,
+        grow_min: 0.0,
+        grow_max: 0.0,
+        wander_kick: 0.0,
+        wander_damp: 0.0,
+        fog: 0.0,
+        fog_reach: 0.0,
+        flower_chance: 0.0,
+        links: 0,
+        persist: false,
     };
 
     /// This configuration with every field made finite and within range.
@@ -142,6 +171,8 @@ impl Config {
             fog: sanitize(self.fog, d.fog, 0.0, 1.0),
             fog_reach: sanitize(self.fog_reach, d.fog_reach, 10.0, 100_000.0),
             flower_chance: sanitize(self.flower_chance, d.flower_chance, 0.0, 1.0),
+            links: if self.links > MAX_LINKS { MAX_LINKS } else { self.links },
+            persist: self.persist,
         }
     }
 }
@@ -228,6 +259,9 @@ pub struct Leaf {
     pub size: f32,
     /// Visibility, 0..=1.
     pub alpha: f32,
+    /// Which link this leaf carries (an index into the developer's list of
+    /// [`Config::links`] links), or `None` for a plain leaf.
+    pub link: Option<u8>,
 }
 
 /// A flower or bud: at the growing tip, or at the end of a twig.
@@ -248,9 +282,24 @@ pub struct Flower {
     pub open: f32,
     /// Visibility, 0..=1.
     pub alpha: f32,
+    /// Which link this flower carries (an index into the developer's list of
+    /// [`Config::links`] links), or `None`. The bud at the growing tip never
+    /// carries a link, because it moves.
+    pub link: Option<u8>,
 }
 
 // ------------------------------------------------------------------- state --
+
+/// What is driving the plant this frame.
+#[derive(Clone, Copy, PartialEq)]
+enum Drive {
+    /// The pointer is at (x, y): grow toward it, or retrace.
+    At(f32, f32),
+    /// The pointer has gone: wither home.
+    Away,
+    /// Hold still (pointer over a link, or away with `persist`).
+    Rest,
+}
 
 /// A side shoot that sprouts from the stem and ends in a leaf or small flower.
 #[derive(Clone, Copy)]
@@ -263,6 +312,7 @@ struct Twig {
     g: f32,        // growth 0..1
     flower: bool,
     size: f32,
+    link: u8, // 0 = none, k + 1 = link k
 }
 
 const TWIG0: Twig = Twig {
@@ -274,13 +324,18 @@ const TWIG0: Twig = Twig {
     g: 0.0,
     flower: false,
     size: 0.0,
+    link: 0,
 };
 
 /// A growing plant: its whole state, in fixed-size arrays.
 pub struct Plant {
-    // `None` until set: keeps a blank plant all-zero, so a `static` of it
-    // costs nothing in the binary (it goes in .bss, not .data).
-    cfg: Option<Config>,
+    // Settings, valid only when `cfg_set` is true (else the defaults apply).
+    // Kept as an all-zero placeholder plus a flag, rather than an Option,
+    // so a blank plant is all-zero bytes and a `static` of it costs nothing
+    // in the binary (.bss, not .data). An Option<Config> would store "None"
+    // as the impossible value 2 in the `persist` bool: one non-zero byte.
+    cfg: Config,
+    cfg_set: bool,
     w: f32,
     ground: f32,
     sx: f32,
@@ -300,6 +355,7 @@ pub struct Plant {
     last_side: f32,
     twigs: [Twig; MAX_TWIGS],
     nt: usize,
+    links_used: u64, // bit k set = link k is on a live twig
     bloom: f32,
     idle: f32,
     t: f32,
@@ -323,7 +379,8 @@ impl Plant {
     #[allow(clippy::large_stack_arrays)]
     pub const fn blank() -> Self {
         Self {
-            cfg: None,
+            cfg: Config::ZERO,
+            cfg_set: false,
             w: 0.0,
             ground: 0.0,
             sx: 0.0,
@@ -343,6 +400,7 @@ impl Plant {
             last_side: 0.0,
             twigs: [TWIG0; MAX_TWIGS],
             nt: 0,
+            links_used: 0,
             bloom: 0.0,
             idle: 0.0,
             t: 0.0,
@@ -380,16 +438,14 @@ impl Plant {
 
     /// Apply new settings (clamped into range). Takes effect immediately.
     pub const fn set_config(&mut self, config: Config) {
-        self.cfg = Some(config.sanitized());
+        self.cfg = config.sanitized();
+        self.cfg_set = true;
     }
 
     /// The settings in effect (after clamping).
     #[must_use]
     pub const fn config(&self) -> Config {
-        match self.cfg {
-            Some(c) => c,
-            None => Config::DEFAULT,
-        }
+        if self.cfg_set { self.cfg } else { Config::DEFAULT }
     }
 
     /// The y coordinate of the crust line, px.
@@ -413,27 +469,25 @@ impl Plant {
     /// Advance the simulation by `dt` seconds (clamped to 0..=0.05).
     ///
     /// `pointer` is the pointer position in viewport pixels, or `None` when
-    /// the pointer has left (which makes the plant wither home). Non-finite
-    /// values are treated as `None`.
+    /// the pointer has left (which makes the plant wither home, unless
+    /// [`Config::persist`] is set). Non-finite values are treated as `None`.
     pub fn step(&mut self, dt: f32, pointer: Option<(f32, f32)>) {
-        if self.n == 0 {
-            return; // no viewport yet
-        }
-        let dt = sanitize(dt, 0.0, 0.0, DT_MAX);
-        let (active, mx, my) = match pointer {
-            Some((x, y)) if x.is_finite() && y.is_finite() => (
-                true,
-                clamp(x, -COORD_LIMIT, COORD_LIMIT),
-                clamp(y, -COORD_LIMIT, COORD_LIMIT),
+        match pointer {
+            Some((x, y)) if x.is_finite() && y.is_finite() => self.advance(
+                dt,
+                Drive::At(clamp(x, -COORD_LIMIT, COORD_LIMIT), clamp(y, -COORD_LIMIT, COORD_LIMIT)),
             ),
-            _ => (false, 0.0, 0.0),
-        };
-        self.t += dt;
-        if self.t > CLOCK_WRAP {
-            self.t -= CLOCK_WRAP;
+            _ => self.advance(dt, Drive::Away),
         }
-        self.update(dt, mx, my, active);
-        self.heal();
+    }
+
+    /// Advance the animation by `dt` seconds without growing or withering:
+    /// the plant holds still, finishes unfolding its leaves and blooms at the
+    /// tip. Call this instead of [`Plant::step`] while the pointer is over a
+    /// link, so reaching for a leaf doesn't make the branch chase or prune
+    /// itself.
+    pub fn rest(&mut self, dt: f32) {
+        self.advance(dt, Drive::Rest);
     }
 
     /// Hand this frame's shapes to `renderer`, in painting order: seed, twig
@@ -485,11 +539,20 @@ impl Plant {
                     size: tw.size * 7.0 * smooth(tw.g / 0.6),
                     open: smooth((tw.g - 0.5) / 0.5),
                     alpha,
+                    link: self.link_of(tw),
                 });
             } else {
                 let size = tw.size * 13.0 * smooth((tw.g - 0.25) / 0.75);
                 if size > 0.3 {
-                    renderer.leaf(Leaf { x: e[0], y: e[1], dir_x: e[2], dir_y: e[3], size, alpha });
+                    renderer.leaf(Leaf {
+                        x: e[0],
+                        y: e[1],
+                        dir_x: e[2],
+                        dir_y: e[3],
+                        size,
+                        alpha,
+                        link: self.link_of(tw),
+                    });
                 }
             }
         }
@@ -504,11 +567,48 @@ impl Plant {
                 size: 5.5 + 11.0 * self.bloom,
                 open: self.bloom,
                 alpha: 1.0,
+                link: None,
             });
         }
     }
 
     // ------------------------------------------------------------ internals
+
+    fn advance(&mut self, dt: f32, drive: Drive) {
+        if self.n == 0 {
+            return; // no viewport yet
+        }
+        let dt = sanitize(dt, 0.0, 0.0, DT_MAX);
+        self.t += dt;
+        if self.t > CLOCK_WRAP {
+            self.t -= CLOCK_WRAP;
+        }
+        let drive = match drive {
+            Drive::Away if self.config().persist => Drive::Rest,
+            other => other,
+        };
+        self.update(dt, drive);
+        self.heal();
+    }
+
+    /// Lowest free link index below `Config::links`, marked used; 0 if none.
+    const fn take_link(&mut self) -> u8 {
+        let mut i = 0;
+        while i < self.config().links {
+            let bit = 1u64 << i;
+            if self.links_used & bit == 0 {
+                self.links_used |= bit;
+                return i + 1;
+            }
+            i += 1;
+        }
+        0
+    }
+
+    /// The public link index of `tw`, if it has one still within range.
+    const fn link_of(&self, tw: &Twig) -> Option<u8> {
+        if tw.link > 0 && tw.link - 1 < self.config().links { Some(tw.link - 1) } else { None }
+    }
 
     // xorshift32: small, fast, and good enough to make each plant different.
     const fn rnd(&mut self) -> f32 {
@@ -538,6 +638,7 @@ impl Plant {
         self.wander = 0.0;
         self.retract_to = -1;
         self.nt = 0;
+        self.links_used = 0;
         self.bloom = 0.0;
         self.idle = 0.0;
         self.since_twig = 0.0;
@@ -562,10 +663,17 @@ impl Plant {
         }
     }
 
-    fn update(&mut self, dt: f32, mx: f32, my: f32, active: bool) {
-        let near_seed = dist(mx, my, self.sx, self.ground) < SEED_ZONE;
+    fn update(&mut self, dt: f32, drive: Drive) {
+        let (active, resting, mx, my) = match drive {
+            Drive::At(x, y) => (true, false, x, y),
+            Drive::Rest => (false, true, 0.0, 0.0),
+            Drive::Away => (false, false, 0.0, 0.0),
+        };
+        let near_seed = active && dist(mx, my, self.sx, self.ground) < SEED_ZONE;
 
-        if !active || near_seed {
+        if resting {
+            // Hold still: no growth and no retreat.
+        } else if !active || near_seed {
             // Pointer left the window, or came home to the seed: wither back.
             // Speed is fixed now so the whole stem goes home in ~1.2 s,
             // rather than slowing down as it shortens.
@@ -581,7 +689,9 @@ impl Plant {
             self.detect_retrace(mx, my);
         }
 
-        if self.retract_to >= 0 {
+        if resting {
+            self.idle += dt;
+        } else if self.retract_to >= 0 {
             self.retract(dt);
             self.idle = 0.0;
         } else {
@@ -590,7 +700,7 @@ impl Plant {
         }
 
         // Twigs: grow, or wither as the retreating tip approaches them.
-        let retracting = self.retract_to >= 0;
+        let retracting = !resting && self.retract_to >= 0;
         let mut k = 0;
         while k < self.nt {
             let mut tw = self.twigs[k];
@@ -601,6 +711,9 @@ impl Plant {
                 tw.g = if tw.g + dt * 1.4 > 1.0 { 1.0 } else { tw.g + dt * 1.4 };
             }
             if tw.anchor >= self.n || (withering && tw.g <= 0.0) {
+                if tw.link > 0 {
+                    self.links_used &= !(1u64 << (tw.link - 1)); // free its link
+                }
                 self.nt -= 1;
                 self.twigs[k] = self.twigs[self.nt];
                 continue;
@@ -610,7 +723,7 @@ impl Plant {
         }
 
         // The tip blooms when the pointer rests; folds back up when it moves.
-        if !retracting && active && self.idle > 0.45 && self.n > 8 {
+        if !retracting && (active || resting) && self.idle > 0.45 && self.n > 8 {
             self.bloom = clamp(self.bloom + dt * 1.1, 0.0, 1.0);
         } else {
             self.bloom = clamp(self.bloom - dt * 2.8, 0.0, 1.0);
@@ -782,7 +895,9 @@ impl Plant {
             g: 0.0,
             flower: self.rnd() < self.config().flower_chance,
             size: self.range(0.8, 1.25),
+            link: 0,
         };
+        let tw = Twig { link: self.take_link(), ..tw };
         self.twigs[self.nt] = tw;
         self.nt += 1;
     }

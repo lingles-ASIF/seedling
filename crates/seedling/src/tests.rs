@@ -21,6 +21,7 @@ struct Recorder {
     expecting: usize,
     max_x: f32,
     min_y: f32,
+    links: Vec<u8>,
 }
 
 fn finite(vals: &[f32]) {
@@ -64,12 +65,14 @@ impl Renderer for Recorder {
         self.not_mid_stroke();
         finite(&[l.x, l.y, l.dir_x, l.dir_y, l.size, l.alpha]);
         self.leaves += 1;
+        self.links.extend(l.link);
     }
     fn flower(&mut self, f: Flower) {
         self.not_mid_stroke();
         finite(&[f.x, f.y, f.dir_x, f.dir_y, f.size, f.open, f.alpha]);
         assert!((0.0..=1.0).contains(&f.open));
         self.flowers += 1;
+        self.links.extend(f.link);
     }
 }
 
@@ -217,4 +220,100 @@ fn reaches_capacity_without_overflowing() {
 
 fn cos_approx(a: f32) -> f32 {
     math::cos(a)
+}
+
+fn with(links: u8, persist: bool) -> Config {
+    Config { links, persist, ..Config::default() }
+}
+
+/// Links currently on live twigs, from the plant's own state.
+fn live_links(p: &Plant) -> Vec<u8> {
+    p.twigs[..p.nt].iter().filter_map(|t| p.link_of(t)).collect()
+}
+
+fn assert_distinct(links: &[u8], below: u8) {
+    let mut seen = [false; 256];
+    for &l in links {
+        assert!(l < below, "link {l} out of range (links = {below})");
+        assert!(!seen[l as usize], "link {l} handed out twice: {links:?}");
+        seen[l as usize] = true;
+    }
+}
+
+#[test]
+fn no_links_by_default() {
+    let mut p = Plant::new(800.0, 600.0, 7);
+    grow(&mut p, 600);
+    assert!(record(&p).links.is_empty());
+}
+
+#[test]
+fn links_are_handed_out_in_growth_order() {
+    let mut p = Plant::new(800.0, 600.0, 7);
+    p.set_config(with(3, false));
+    grow(&mut p, 600);
+    assert!(p.nt > 3, "need more twigs than links for this test");
+    // Twigs are stored in creation order while nothing has withered.
+    let first: Vec<u8> = p.twigs[..3].iter().map(|t| p.link_of(t).expect("first three twigs are linked")).collect();
+    assert_eq!(first, vec![0, 1, 2]);
+    assert!(p.twigs[3..p.nt].iter().all(|t| p.link_of(t).is_none()), "only 3 links exist");
+    let drawn = record(&p).links;
+    assert_distinct(&drawn, 3);
+}
+
+#[test]
+fn withered_links_are_recycled_and_never_duplicated() {
+    let mut p = Plant::new(800.0, 600.0, 21);
+    p.set_config(with(5, false));
+    for round in 0..4 {
+        grow(&mut p, 500);
+        let live = live_links(&p);
+        assert_distinct(&live, 5);
+        assert_eq!(live.len(), 5.min(p.nt), "round {round}: every link should be in use");
+        // Wither most of the way home, then regrow: links must come back.
+        for _ in 0..40 {
+            p.step(1.0 / 60.0, None);
+        }
+        assert_distinct(&live_links(&p), 5);
+    }
+}
+
+#[test]
+fn persist_keeps_the_plant_when_the_pointer_leaves() {
+    let mut p = Plant::new(800.0, 600.0, 3);
+    p.set_config(with(4, true));
+    grow(&mut p, 400);
+    let before = (p.n, p.nt, live_links(&p));
+    for _ in 0..600 {
+        p.step(1.0 / 60.0, None); // 10 s away
+    }
+    assert_eq!((p.n, p.nt, live_links(&p)), before, "plant must stay exactly as grown");
+    assert!(p.bloom > 0.9, "a resting plant blooms at the tip");
+    // Returning to the seed still buries it.
+    let (sx, _) = p.seed_position();
+    for _ in 0..240 {
+        p.step(1.0 / 60.0, Some((sx, p.ground_y())));
+    }
+    assert!(!p.has_plant());
+}
+
+#[test]
+fn rest_holds_growth_still() {
+    let mut p = Plant::new(800.0, 600.0, 9);
+    grow(&mut p, 200);
+    let (tip, n) = ((p.tipx, p.tipy), p.n);
+    for _ in 0..120 {
+        p.rest(1.0 / 60.0);
+    }
+    assert_eq!(((p.tipx, p.tipy), p.n), (tip, n), "rest must not grow or retract");
+    let _ = record(&p);
+}
+
+#[test]
+fn links_are_clamped() {
+    let mut p = Plant::new(800.0, 600.0, 4);
+    p.set_config(with(255, false));
+    assert_eq!(p.config().links, MAX_LINKS);
+    grow(&mut p, 900);
+    assert_distinct(&record(&p).links, MAX_LINKS);
 }

@@ -15,10 +15,72 @@
     color: #8a7d6b; transition: opacity 1.2s ease; pointer-events: none; user-select: none;
   }
   #err { position: fixed; inset: 0; display: none; place-items: center; font: 15px system-ui; color: #7a3b2e; padding: 24px; text-align: center; }
+
+  /* Leaf links: invisible hit areas over linked leaves, with a label on hover. */
+  #leaf-links { position: fixed; inset: 0; pointer-events: none; }
+  .leaf-link {
+    position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%;
+    pointer-events: auto; cursor: pointer; outline: none;
+  }
+  .leaf-link[hidden] { display: none; }
+  .leaf-link:hover { box-shadow: 0 0 0 2px rgba(214, 170, 96, 0.7); }
+  .leaf-link span {
+    position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -4px);
+    white-space: nowrap; padding: 3px 9px; border-radius: 999px;
+    font: 13px/1.3 Georgia, "Iowan Old Style", serif; color: #f4f1ea; background: rgba(74, 60, 46, 0.92);
+    opacity: 0; transition: opacity .15s ease; pointer-events: none;
+  }
+  .leaf-link:hover span { opacity: 1; }
+
+  /* The same links as a plain list, for keyboard and screen-reader visitors:
+     hidden until something in it receives keyboard focus. */
+  .link-list {
+    position: fixed; left: 12px; top: 12px; padding: 10px 14px; border-radius: 10px;
+    background: rgba(250, 247, 240, 0.97); box-shadow: 0 2px 12px rgba(74, 60, 46, 0.18);
+    font: 15px/1.5 Georgia, "Iowan Old Style", serif;
+    clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; white-space: nowrap;
+  }
+  .link-list:focus-within { clip-path: none; width: auto; height: auto; overflow: visible; }
+  .link-list ul { margin: 0; padding: 0 0 0 18px; }
+  .link-list a { color: #4a3c2e; }
+  .link-list a:focus-visible { outline: 2px solid #d6aa60; outline-offset: 2px; }
 </style>
 </head>
 <body>
-<canvas id="c"></canvas>
+<!--
+  ===================== Seedling settings: edit this block =====================
+  links    Up to 64 links, each { "href": "...", "label": "..." }, in the order
+           leaves and flowers should receive them: the first to grow gets the
+           first link, and so on. If a linked branch withers, its link moves to
+           the next leaf that grows. Allowed addresses: https:, http:, mailto:
+           and relative paths (like "about.html" or "/contact"). Anything else,
+           such as javascript:, is ignored for safety. Labels are shown on hover.
+  persist  true  = the grown plant stays when the pointer leaves (visitors can
+                   come back and click). Returning the pointer to the seed
+                   still resets it.
+           false = the plant withers back to the seed (the original behaviour).
+           Default: true when there are links, false when there are none.
+  newTab   true opens links in a new tab. Default: false.
+  The block must stay valid JSON (double quotes, no trailing commas), and must
+  never contain the text </script> (it would end the block early): write <\/script>.
+  ==============================================================================
+-->
+<script type="application/json" id="seedling-config">
+{
+  "links": [
+    { "href": "https://github.com/lingles-ASIF/seedling", "label": "Source code" },
+    { "href": "https://github.com/lingles-ASIF/seedling/blob/main/crates/seedling/README.md", "label": "Use it in Rust" },
+    { "href": "https://github.com/lingles-ASIF/seedling/blob/main/CHANGELOG.md", "label": "What's new" },
+    { "href": "https://github.com/lingles-ASIF/seedling/blob/main/SECURITY.md", "label": "Security policy" },
+    { "href": "https://github.com/lingles-ASIF/seedling/blob/main/AUTHORS.md", "label": "Authors" }
+  ],
+  "persist": true,
+  "newTab": false
+}
+</script>
+<canvas id="c" aria-hidden="true"></canvas>
+<div id="leaf-links" aria-hidden="true"></div>
+<nav class="link-list" id="link-list" aria-label="Links" hidden><ul></ul></nav>
 <div id="hint">move your pointer to wake the seed</div>
 <div id="err"></div>
 <script>
@@ -26,7 +88,8 @@
  * Thin host for the Rust growth engine (embedded below as WebAssembly).
  * The engine decides every position, width, fade and bloom. This script only:
  *   1. forwards pointer position + a frame clock to Rust,
- *   2. paints the list of shapes Rust writes into its memory.
+ *   2. paints the list of shapes Rust writes into its memory,
+ *   3. turns linked leaves into real links (from the settings block above).
  * Browsers only let JavaScript touch the page, so some JS is unavoidable;
  * the simulation itself is all Rust.
  */
@@ -48,11 +111,97 @@ const WASM_BASE64 = "__WASM_BASE64__";
     return;
   }
 
+  // ---- settings (the JSON block at the top of <body>) ----
+  const MAX_LINKS = 64;
+  // Only these address types may become links; relative paths are always fine.
+  const SAFE_PROTOCOLS = new Set(['https:', 'http:', 'mailto:']);
+  const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+
+  function safeHref(raw) {
+    if (typeof raw !== 'string') return null;
+    const s = raw.trim();
+    if (!s || s.length > 2048 || /[\u0000-\u001f\u007f]/.test(s)) return null;
+    let url;
+    try { url = new URL(s, document.baseURI); } catch { return null; }
+    const relative = !SCHEME.test(s) && !s.startsWith('//');
+    return relative || SAFE_PROTOCOLS.has(url.protocol) ? url.href : null;
+  }
+
+  function readSettings() {
+    let raw = {};
+    const block = document.getElementById('seedling-config');
+    try { raw = block ? JSON.parse(block.textContent) : {}; }
+    catch { console.warn('Seedling: the settings block is not valid JSON, so defaults are used.'); }
+    if (!raw || typeof raw !== 'object') raw = {};
+    const links = [];
+    for (const [k, item] of (Array.isArray(raw.links) ? raw.links : []).entries()) {
+      const href = safeHref(item && item.href);
+      if (!href) { console.warn(`Seedling: link ${k + 1} was skipped (missing or unsafe address).`); continue; }
+      const label = (typeof item.label === 'string' && item.label.trim().slice(0, 80)) || `Link ${links.length + 1}`;
+      if (links.length < MAX_LINKS) links.push({ href, label });
+    }
+    return {
+      links,
+      persist: typeof raw.persist === 'boolean' ? raw.persist : links.length > 0,
+      newTab: raw.newTab === true,
+    };
+  }
+  const SETTINGS = readSettings();
+  wasm.configure(SETTINGS.links.length, SETTINGS.persist ? 1 : 0);
+
+  // ---- links: hit areas over leaves, and the same links as a keyboard list ----
+  const overlay = document.getElementById('leaf-links');
+  let hoverLink = null; // the link element under the pointer: the plant rests
+  const makeLink = (l, cls) => {
+    const a = document.createElement('a');
+    a.href = l.href;
+    if (cls) a.className = cls;
+    if (SETTINGS.newTab) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    return a;
+  };
+  const leafLinks = SETTINGS.links.map(l => {
+    const a = makeLink(l, 'leaf-link');
+    a.tabIndex = -1; // keyboard users get the list below instead
+    const tip = document.createElement('span');
+    tip.textContent = l.label;
+    a.append(tip);
+    a.hidden = true;
+    a.addEventListener('pointerenter', () => { hoverLink = a; });
+    a.addEventListener('pointerleave', () => { if (hoverLink === a) hoverLink = null; });
+    overlay.append(a);
+    return a;
+  });
+  if (SETTINGS.links.length) {
+    const nav = document.getElementById('link-list'), ul = nav.querySelector('ul');
+    for (const l of SETTINGS.links) {
+      const li = document.createElement('li'), a = makeLink(l, '');
+      a.textContent = l.label;
+      li.append(a); ul.append(li);
+    }
+    nav.hidden = false;
+  }
+  const shown = new Set();
+  function placeLink(link, cx, cy) {
+    const a = leafLinks[link];
+    if (!a) return;
+    a.style.transform = `translate(${(cx - 15).toFixed(1)}px, ${(cy - 15).toFixed(1)}px)`;
+    a.hidden = false;
+    shown.add(link);
+  }
+  function hideUnplacedLinks() {
+    leafLinks.forEach((a, k) => {
+      if (!shown.has(k) && !a.hidden) { a.hidden = true; if (hoverLink === a) hoverLink = null; }
+    });
+    shown.clear();
+  }
+
   // ---- palette (paper, soil, bark, leaf, petal) ----
   const BG = [244, 241, 234];
   const BARK = [96, 76, 58], STEM = [88, 126, 64], TWIG = [98, 138, 72];
   const LEAF = [104, 150, 74], RIB = [170, 198, 140];
   const PETAL = [236, 146, 150], BUD = [112, 150, 82], HEART = [244, 196, 92];
+  const LINK_MARK = [214, 170, 96];
+  const LINK_ALPHA = 0.7; // linked shapes never fade below this, so they stay findable
 
   const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   // Fog is drawn as an opaque blend toward the paper, not transparency,
@@ -105,7 +254,17 @@ const WASM_BASE64 = "__WASM_BASE64__";
     return base + n * 4;
   }
 
-  function leaf(x, y, dx, dy, s, a) {
+  function linkMark(r, a) {
+    // A small gold ring marks a leaf or flower that is a link.
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.strokeStyle = fogged(LINK_MARK, a); ctx.lineWidth = 1.4; ctx.stroke();
+  }
+
+  function leaf(x, y, dx, dy, s, a, link) {
+    if (link >= 0) {
+      a = Math.max(a, LINK_ALPHA);
+      placeLink(link, x + dx * s * 0.8, y + dy * s * 0.8);
+    }
     ctx.save(); ctx.translate(x, y); ctx.rotate(Math.atan2(dy, dx));
     ctx.beginPath(); ctx.moveTo(0, 0);
     ctx.quadraticCurveTo(s * 0.55, -s * 0.48, s * 1.6, 0);
@@ -113,11 +272,13 @@ const WASM_BASE64 = "__WASM_BASE64__";
     ctx.fillStyle = fogged(LEAF, a); ctx.fill();
     ctx.beginPath(); ctx.moveTo(s * 0.1, 0); ctx.quadraticCurveTo(s * 0.8, -s * 0.04, s * 1.35, 0);
     ctx.strokeStyle = fogged(RIB, a); ctx.lineWidth = Math.max(0.5, s * 0.06); ctx.stroke();
+    if (link >= 0) { ctx.translate(s * 0.8, 0); linkMark(Math.max(4, s * 0.55), a); }
     ctx.restore();
   }
 
-  function flower(x, y, dx, dy, s, open, a) {
+  function flower(x, y, dx, dy, s, open, a, link) {
     if (s < 0.5) return;
+    if (link >= 0) { a = Math.max(a, LINK_ALPHA); placeLink(link, x, y); }
     const PETALS = 5;
     const col = mix(BUD, PETAL, Math.min(1, open * 1.6));
     ctx.save(); ctx.translate(x, y); ctx.rotate(Math.atan2(dy, dx));
@@ -136,6 +297,7 @@ const WASM_BASE64 = "__WASM_BASE64__";
       ctx.beginPath(); ctx.arc(0, 0, s * 0.2 * open, 0, Math.PI * 2);
       ctx.fillStyle = fogged(HEART, a); ctx.fill();
     }
+    if (link >= 0) linkMark(Math.max(5, s * 0.9), a);
     ctx.restore();
   }
 
@@ -181,7 +343,8 @@ const WASM_BASE64 = "__WASM_BASE64__";
   let last = performance.now();
   function frame(now) {
     const dt = (now - last) / 1000; last = now;
-    const len = wasm.tick(dt, mx, my, active ? 1 : 0);
+    // 2 = rest: the pointer is on a link, so hold still while it is clicked.
+    const len = wasm.tick(dt, mx, my, hoverLink ? 2 : active ? 1 : 0);
     const buf = new Float32Array(wasm.memory.buffer, wasm.out_ptr(), len);
 
     ctx.fillStyle = `rgb(${BG})`; ctx.fillRect(0, 0, W, H);
@@ -191,12 +354,13 @@ const WASM_BASE64 = "__WASM_BASE64__";
       const cmd = buf[i++];
       if (cmd === 0) break;
       else if (cmd === 1) { const kind = buf[i++]; i = stroke(buf, i, kind); }
-      else if (cmd === 2) { leaf(buf[i], buf[i + 1], buf[i + 2], buf[i + 3], buf[i + 4], buf[i + 5]); i += 6; }
-      else if (cmd === 3) { flower(buf[i], buf[i + 1], buf[i + 2], buf[i + 3], buf[i + 4], buf[i + 5], buf[i + 6]); i += 7; }
+      else if (cmd === 2) { leaf(buf[i], buf[i + 1], buf[i + 2], buf[i + 3], buf[i + 4], buf[i + 5], buf[i + 6]); i += 7; }
+      else if (cmd === 3) { flower(buf[i], buf[i + 1], buf[i + 2], buf[i + 3], buf[i + 4], buf[i + 5], buf[i + 6], buf[i + 7]); i += 8; }
       else if (cmd === 4) { seed = [buf[i], buf[i + 1], buf[i + 2], buf[i + 3]]; i += 4; }
       else break;
     }
     soilAndCrust(seed);
+    hideUnplacedLinks();
 
     hint.style.opacity = active ? 0 : 1;
     requestAnimationFrame(frame);

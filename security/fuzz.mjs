@@ -7,6 +7,8 @@
 //   - traps (Rust panic, out-of-bounds index, integer underflow, etc.)
 //   - emits a non-finite number (NaN / Infinity) into the draw buffer
 //   - emits a malformed draw buffer (bad command, count past the end, no END)
+//   - emits a link index that is not -1 or a whole number below the configured count
+//   - hands the same link to two shapes in one frame
 //   - reports a buffer length outside its own memory
 //   - stays "poisoned" (can't grow normally) after hostile input
 import { readFileSync } from 'node:fs';
@@ -33,13 +35,16 @@ function fail(kind, detail) {
   failures.get(kind).count++;
 }
 
-const ARITY = { 1: -1, 2: 6, 3: 7, 4: 4 };
+// Payload sizes; leaf and flower end with a link index (-1 = none).
+const ARITY = { 1: -1, 2: 7, 3: 8, 4: 4 };
+let linksConfigured = 0; // what the harness last passed to configure()
 function validate(ex, len, ctx) {
   const mem = ex.memory.buffer.byteLength;
   const ptr = ex.out_ptr();
   if (!Number.isInteger(len) || len < 1 || ptr + len * 4 > mem) return fail('bad length', ctx);
   const b = new Float32Array(ex.memory.buffer, ptr, len);
   let i = 0, sawEnd = false;
+  const seenLinks = new Set();
   for (let k = 0; k < len; k++) if (!Number.isFinite(b[k])) return fail('non-finite output', `${ctx} @${k}=${b[k]}`);
   while (i < len) {
     const c = b[i++];
@@ -52,6 +57,15 @@ function validate(ex, len, ctx) {
       i += n * 4;
     } else {
       if (i + a > len) return fail('truncated command', ctx);
+      if (c === 2 || c === 3) {
+        const link = b[i + a - 1];
+        if (link !== -1 && !(Number.isInteger(link) && link >= 0 && link < Math.min(linksConfigured, 64)))
+          return fail('bad link index', `${ctx} link=${link} configured=${linksConfigured}`);
+        if (link >= 0) {
+          if (seenLinks.has(link)) return fail('duplicate link in one frame', `${ctx} link=${link}`);
+          seenLinks.add(link);
+        }
+      }
       i += a;
     }
   }
@@ -66,6 +80,7 @@ function call(ex, name, args, ctx) {
 // 1. Calls before init (the page always inits first, but exports are public).
 {
   const ex = await fresh();
+  call(ex, 'configure', [5, 1], 'pre-init');
   const len = call(ex, 'tick', [0.016, 100, 100, 1], 'pre-init');
   if (len !== undefined) validate(ex, len, 'pre-init');
   call(ex, 'ground_y', [], 'pre-init');
@@ -81,8 +96,18 @@ for (let it = 0; it < ITER; it++) {
     if (call(ex, 'init', args, `iter ${it}`) === undefined && failures.has('trap in init')) { ex = await fresh(); call(ex, 'init', [1000, 700, 1], 'recover'); }
     continue;
   }
-  const args = rnd() < 0.15 ? [pick(), pick(), pick(), ((rnd() * 4) | 0) - 1]
-    : [0.016, 200 + rnd() * 600, 100 + rnd() * 500, rnd() < 0.97 ? 1 : 0];
+  if (r < 0.004) { // reconfigure: link counts incl. hostile ones (u32 wraps from JS)
+    const links = [0, 1, 3, 12, 64, 65, 255, 256, 4294967295, -1][(rnd() * 10) | 0];
+    const persist = [0, 1, -1, 2 ** 31 - 1][(rnd() * 4) | 0];
+    if (call(ex, 'configure', [links, persist], `iter ${it}`) !== undefined || true) {
+      const u = links >>> 0; // how the u32 parameter receives it
+      linksConfigured = u > 255 ? 64 : Math.min(u, 64);
+    }
+    continue;
+  }
+  // active: 0 = gone, 1 = at pointer, 2 = resting on a link, others = hostile
+  const args = rnd() < 0.15 ? [pick(), pick(), pick(), ((rnd() * 6) | 0) - 2]
+    : [0.016, 200 + rnd() * 600, 100 + rnd() * 500, rnd() < 0.9 ? 1 : (rnd() < 0.5 ? 2 : 0)];
   const len = call(ex, 'tick', args, `iter ${it}`);
   if (len === undefined) { ex = await fresh(); call(ex, 'init', [1000, 700, 1], 'recover'); continue; }
   validate(ex, len, `iter ${it} args=${args.map(String)}`);
@@ -114,6 +139,30 @@ for (let it = 0; it < ITER; it++) {
   }
   validate(e, len, 'capacity end');
   console.log(`capacity: peak draw buffer ${maxLen.toLocaleString()} of 120,000 floats`);
+}
+
+// 5. Links are really handed out: with 5 configured, all of 0..4 appear.
+{
+  const e = await fresh();
+  e.init(1000, 700, 11);
+  e.configure(5, 1);
+  linksConfigured = 5;
+  const seen = new Set();
+  for (let k = 0; k < 900; k++) {
+    const t = k / 900;
+    const len = e.tick(1 / 60, 500 + 250 * Math.sin(t * 6), 600 - 520 * t, 1);
+    if (k % 50 === 0) validate(e, len, `links k=${k}`);
+    const b = new Float32Array(e.memory.buffer, e.out_ptr(), len);
+    for (let i = 0; i < len;) {
+      const c = b[i++];
+      if (c === 0) break;
+      if (c === 1) { i++; const n = b[i++]; i += n * 4; continue; }
+      if (c === 2 || c === 3) { const l = b[i + ARITY[c] - 1]; if (l >= 0) seen.add(l); }
+      i += ARITY[c];
+    }
+  }
+  if ([0, 1, 2, 3, 4].some(l => !seen.has(l))) fail('links not handed out', `saw ${[...seen].sort()}`);
+  else console.log('links: all 5 configured links appeared on leaves/flowers');
 }
 
 console.log(`fuzzed ${ITER.toLocaleString()} frames`);

@@ -169,9 +169,15 @@ class Gate:
         cmd = ["cargo", "build", "--release", "--workspace", *self.args]
         p = sc.run(cmd, env=self.env, timeout=1200)
         self.wasm = [w for w in sc.wasm_files() if w.read_bytes()[:4] == b"\0asm"]
-        if p.returncode == 0 and self.wasm:
+        limit = int(sc.cfg("gate", "max_wasm_bytes", 0) or 0)
+        too_big = [w for w in self.wasm if limit and w.stat().st_size > limit]
+        if p.returncode == 0 and self.wasm and not too_big:
             sizes = ", ".join(f"{w.name} ({w.stat().st_size:,} B)" for w in self.wasm)
-            self.record("build.wasm", "pass", f"{' '.join(cmd)} -> {sizes}")
+            self.record("build.wasm", "pass", f"{' '.join(cmd)} -> {sizes}" + (f"; limit {limit:,} B" if limit else ""))
+        elif p.returncode == 0 and too_big:
+            sizes = ", ".join(f"{w.name} ({w.stat().st_size:,} B)" for w in too_big)
+            self.record("build.wasm", "fail", f"module over the {limit:,} B limit: {sizes}. State has probably moved "
+                        "into the data section; keep blank state all-zero (see governance/config.toml max_wasm_bytes)")
         else:
             tail = (p.stderr or p.stdout).strip().splitlines()[-6:]
             self.record("build.wasm", "fail", f"exit {p.returncode}; wasm found: {len(self.wasm)}; " + " | ".join(tail))
