@@ -30,6 +30,8 @@ Every commit in this repository, oldest first, regenerated deterministically fro
 | 24 | 2026-11-22 20:46:00 EST | `8d8b65eda6` | refactor: split into the seedling library and a thin seedling-wasm wrapper | 22 | +1533/-799 | 100.0/95 PASS (fast, tree b82a7c796a) |
 | 25 | 2026-11-22 20:46:11 EST | `6ae7785ecf` | chore(audit): record audit log through the library split | 2 | +130/-0 | not run (no gated paths changed) |
 | 26 | 2026-11-22 20:57:50 EST | `21f1434036` | feat: leaf links (handed out in growth order), persist, and rest | 11 | +881/-104 | 100.0/95 PASS (fast, tree 939f61b739) |
+| 27 | 2026-11-22 20:58:02 EST | `0ff868aad5` | chore(audit): record audit log through leaf links | 2 | +37/-0 | not run (no gated paths changed) |
+| 28 | 2026-11-22 21:10:09 EST | `b80bb9b798` | feat(circuit): circuit-board birch tree, an optional growth style | 16 | +1571/-32 | 100.0/95 PASS (fast, tree 73aec1e024) |
 
 ## Entries
 
@@ -441,3 +443,41 @@ Every commit in this repository, oldest first, regenerated deterministically fro
   | `security/gate.py` | 8 | 2 |
   | `seedling.html` | 173 | 9 |
   | `web/template.html` | 171 | 7 |
+
+### 2026-11-22 20:58:02 EST `0ff868aad5` chore(audit): record audit log through leaf links
+
+- Commit: `0ff868aad59e9482e37c5fb8e8ccf539432bc3eb`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: not run (no gated paths changed)
+- Changes: 2 file(s), +37 / -0
+
+  | File | + | - |
+  |---|---:|---:|
+  | `governance/audit/AUDIT_LOG.md` | 35 | 0 |
+  | `governance/audit/audit_log.jsonl` | 2 | 0 |
+
+### 2026-11-22 21:10:09 EST `b80bb9b798` feat(circuit): circuit-board birch tree, an optional growth style
+
+- Commit: `b80bb9b7987c493492b65508c1b47ca176415f38`
+- Author: Scott Lingley; co-author(s): Claude Opus 5.5
+- Security gate: 100.0/95 PASS (fast, tree 73aec1e024)
+- Changes: 16 file(s), +1571 / -32
+
+  | File | + | - |
+  |---|---:|---:|
+  | `CHANGELOG.md` | 8 | 0 |
+  | `README.md` | 21 | 0 |
+  | `build.py` | 31 | 0 |
+  | `crates/seedling-wasm/Cargo.toml` | 1 | 1 |
+  | `crates/seedling-wasm/src/lib.rs` | 32 | 7 |
+  | `crates/seedling/Cargo.toml` | 9 | 0 |
+  | `crates/seedling/README.md` | 15 | 0 |
+  | `crates/seedling/src/circuit.rs` | 521 | 0 |
+  | `crates/seedling/src/lib.rs` | 106 | 3 |
+  | `crates/seedling/src/tests.rs` | 194 | 2 |
+  | `demos/circuit-birch.html` | 445 | 0 |
+  | `security/browser_check.py` | 16 | 1 |
+  | `security/fuzz.mjs` | 22 | 11 |
+  | `security/gate.py` | 8 | 1 |
+  | `seedling.html` | 72 | 4 |
+  | `web/template.html` | 70 | 2 |
