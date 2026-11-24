@@ -1,0 +1,18 @@
+[package]
+name = "seedling"
+description = "A pointer-guided growing plant: a no_std, allocation-free, dependency-free and unsafe-free growth engine you render however you like"
+readme = "README.md"
+keywords = ["generative", "animation", "plant", "no-std", "wasm"]
+categories = ["no-std", "no-std::no-alloc", "graphics", "simulation", "wasm"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+# Ship only the library and its legal/readme files to crates.io. The license
+# files here are symlinks to the repository root; cargo packages their contents.
+include = ["/src/**/*.rs", "/README.md", "/LICENSE-MIT", "/LICENSE-APACHE", "/NOTICE", "/AUTHORS.md"]
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const bytes = readFileSync(here + '../target/wasm32-unknown-unknown/release/seedling.wasm');
+const bytes = readFileSync(here + '../target/wasm32-unknown-unknown/release/seedling_wasm.wasm');
 const ITER = Number(process.argv[2] || 200000);
 
 const HOSTILE = [NaN, Infinity, -Infinity, -0, 0, 1e-45, -1, -1e9, 1e9, 3.4e38, -3.4e38,

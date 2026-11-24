@@ -32,11 +32,12 @@ stage_paths = ["build.py", "web/**/*", "security/fuzz.mjs", "security/browser_ch
 build_std_flags = ["-Zbuild-std=core,panic_abort"]
 
 [publish]
-# Package to publish to crates.io. Empty = auto: the workspace member with a
-# cdylib target if exactly one exists, else the root package.
-package = ""
-# cargo publish verifies by compiling; the engine only builds for wasm32.
-publish_target = "wasm32-unknown-unknown"
+# Package to publish to crates.io: the `seedling` library crate. (The
+# seedling-wasm wrapper has publish = false; it only exists for the demo page.)
+package = "seedling"
+# Target cargo publish verifies against. Empty = the host: the library is
+# platform-independent, so no wasm target is needed to publish it.
+publish_target = ""
 required_manifest_fields = ["description", "license", "repository"]
 
 [gate]

@@ -1,25 +1,16 @@
-[package]
-name = "seedling"
+[workspace]
+resolver = "3"
+members = ["crates/seedling", "crates/seedling-wasm"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
-description = "A pointer-guided growing branch: Rust simulation compiled to WebAssembly"
+rust-version = "1.85"
 license = "MIT OR Apache-2.0"
-readme = "README.md"
-keywords = ["wasm", "generative", "animation", "plant", "no-std"]
-categories = ["wasm", "no-std", "graphics", "simulation"]
 authors = ["Scott Lingley"]
 repository = "https://github.com/lingles-ASIF/seedling"
-# Ship only the library and its legal/readme files to crates.io; CI, audit
-# logs and the demo page stay in the GitHub repository.
-include = ["/src/**/*.rs", "/README.md", "/LICENSE-MIT", "/LICENSE-APACHE", "/NOTICE", "/AUTHORS.md"]
 
-[lib]
-crate-type = ["cdylib"]
-path = "src/lib.rs"
-
-[package.metadata.docs.rs]
-targets = ["wasm32-unknown-unknown"] # the engine uses core::arch::wasm32
-
+# Security posture for every crate in the workspace (checked by the gate).
 [profile.release]
 opt-level = "s"
 lto = true
