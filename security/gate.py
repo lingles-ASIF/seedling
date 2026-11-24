@@ -169,9 +169,15 @@ class Gate:
         cmd = ["cargo", "build", "--release", "--workspace", *self.args]
         p = sc.run(cmd, env=self.env, timeout=1200)
         self.wasm = [w for w in sc.wasm_files() if w.read_bytes()[:4] == b"\0asm"]
-        if p.returncode == 0 and self.wasm:
+        limit = int(sc.cfg("gate", "max_wasm_bytes", 0) or 0)
+        too_big = [w for w in self.wasm if limit and w.stat().st_size > limit]
+        if p.returncode == 0 and self.wasm and not too_big:
             sizes = ", ".join(f"{w.name} ({w.stat().st_size:,} B)" for w in self.wasm)
-            self.record("build.wasm", "pass", f"{' '.join(cmd)} -> {sizes}")
+            self.record("build.wasm", "pass", f"{' '.join(cmd)} -> {sizes}" + (f"; limit {limit:,} B" if limit else ""))
+        elif p.returncode == 0 and too_big:
+            sizes = ", ".join(f"{w.name} ({w.stat().st_size:,} B)" for w in too_big)
+            self.record("build.wasm", "fail", f"module over the {limit:,} B limit: {sizes}. State has probably moved "
+                        "into the data section; keep blank state all-zero (see governance/config.toml max_wasm_bytes)")
         else:
             tail = (p.stderr or p.stdout).strip().splitlines()[-6:]
             self.record("build.wasm", "fail", f"exit {p.returncode}; wasm found: {len(self.wasm)}; " + " | ".join(tail))
@@ -199,14 +205,21 @@ class Gate:
             pkg = sc.publish_package()["name"]
         except RuntimeError as e:
             return self.record("tests.unit", "fail", str(e))
+        # Both with only the default features and with every optional feature
+        # (e.g. `circuit`), so bolt-on code is tested and the core stands alone.
         cmd = ["cargo", "test", "-p", pkg]
         p = sc.run(cmd, env={"CARGO_TERM_COLOR": "never"}, timeout=1200)
         out = ANSI.sub("", p.stdout + p.stderr)
+        if p.returncode == 0:
+            cmd = ["cargo", "test", "-p", pkg, "--all-features"]
+            p = sc.run(cmd, env={"CARGO_TERM_COLOR": "never"}, timeout=1200)
+            out += ANSI.sub("", p.stdout + p.stderr)
+            cmd = ["cargo", "test", "-p", pkg, "[--all-features]"]
         runs = re.findall(r"test result: (\w+)\. (\d+) passed; (\d+) failed", out)
         passed = sum(int(r[1]) for r in runs)
         failed = sum(int(r[2]) for r in runs)
         if p.returncode == 0 and runs and failed == 0:
-            self.record("tests.unit", "pass", f"`{' '.join(cmd)}`: {passed} passed, 0 failed")
+            self.record("tests.unit", "pass", f"`{' '.join(cmd)}` (default and all features): {passed} passed, 0 failed")
         else:
             bad = [ln for ln in out.splitlines() if "FAILED" in ln or "panicked" in ln or ln.startswith("error")][:3]
             self.record("tests.unit", "fail", f"`{' '.join(cmd)}`: exit {p.returncode}, {passed} passed, {failed} failed. " + " | ".join(bad))

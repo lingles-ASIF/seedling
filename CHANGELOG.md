@@ -11,6 +11,27 @@ from conventional commit messages.
 
 ### Added
 
+- Circuit-board birch tree (`Style::CircuitBirch`, optional Cargo feature
+  `circuit`): a straight trunk rises toward the pointer; branches leave it at
+  45° and route toward the pointer like circuit traces (straight runs, 45°
+  turns only), fork 45° side traces, and end in birch leaves that can carry
+  links. Branches left alone fade into the fog. New settings: `branch_length`,
+  `trunk_height`, `branch_spacing`; `StrokeKind::{Trunk, Trace}`,
+  `LeafKind::{Vine, Birch}`. Page setting `"style": "circuit-birch"`, and a
+  ready-made `demos/circuit-birch.html`.
+- Leaf links. Leaves and twig flowers can carry links, handed out in growth
+  order and recycled when a linked branch withers (`Config::links`,
+  `Leaf::link`, `Flower::link`). The page reads links from a JSON settings
+  block, accepts only `https:`, `http:`, `mailto:` and relative addresses,
+  shows labels as text on hover, marks linked leaves with a gold ring, and
+  offers the same links as a keyboard/screen-reader list.
+- `Config::persist`: keep the grown plant when the pointer leaves (on by
+  default in the page when links are set).
+- `Plant::rest`: hold still without growing or withering; the page uses it
+  while the pointer is over a link.
+- Security gate: module-size limit (`max_wasm_bytes`), link checks in the fuzz
+  harness (valid, unique, actually handed out), and browser probes for links,
+  hostile link settings, keyboard access, persistence and broken settings.
 - Growth engine in Rust (`#![no_std]`, zero dependencies) compiled to
   WebAssembly: a shoot that sprouts and curves after the pointer, sets leaves
   and the odd flower, blooms when the pointer rests, retracts when the pointer

@@ -4,8 +4,8 @@
 //! `seedling` library crate; this one only:
 //!
 //! 1. keeps one [`Plant`] in WebAssembly memory,
-//! 2. exposes four functions to the page (`init`, `tick`, `out_ptr`,
-//!    `ground_y`), and
+//! 2. exposes six functions to the page (`init`, `configure`, `set_style`,
+//!    `tick`, `out_ptr`, `ground_y`), and
 //! 3. writes each frame's shapes into a flat `f32` draw list the page's
 //!    JavaScript paints onto a canvas.
 //!
@@ -14,10 +14,12 @@
 //! | code | command | payload |
 //! |---|---|---|
 //! | 0 | end | |
-//! | 1 | stroke | kind (0 stem, 1 twig), count, then count × (x, y, width, alpha) |
-//! | 2 | leaf | x, y, `dir_x`, `dir_y`, size, alpha |
-//! | 3 | flower | x, y, `dir_x`, `dir_y`, size, open, alpha |
+//! | 1 | stroke | kind (0 stem, 1 twig, 2 trunk, 3 trace), count, then count × (x, y, width, alpha) |
+//! | 2 | leaf | x, y, `dir_x`, `dir_y`, size, alpha, link, shape (0 vine, 1 birch) |
+//! | 3 | flower | x, y, `dir_x`, `dir_y`, size, open, alpha, link |
 //! | 4 | seed | x, y, pulse, prominence |
+//!
+//! `link` is the index of the developer's link this shape carries, or -1.
 //!
 //! On targets other than wasm32 the crate compiles to nothing, so
 //! `cargo build`/`cargo test` across the whole workspace work on any machine.
@@ -31,7 +33,7 @@
 mod wasm {
     use core::arch::wasm32;
     use core::panic::PanicInfo;
-    use seedling::{Flower, Leaf, Plant, Renderer, Seed, StrokeKind, StrokePoint};
+    use seedling::{Flower, Leaf, LeafKind, Plant, Renderer, Seed, StrokeKind, StrokePoint, Style};
 
     #[panic_handler]
     fn panic(_: &PanicInfo) -> ! {
@@ -71,7 +73,12 @@ mod wasm {
             self.put_all(&[CMD_SEED, s.x, s.y, s.pulse, s.prominence]);
         }
         fn stroke_begin(&mut self, kind: StrokeKind, points: usize) {
-            let k = if kind == StrokeKind::Stem { 0.0 } else { 1.0 };
+            let k = match kind {
+                StrokeKind::Stem => 0.0,
+                StrokeKind::Twig => 1.0,
+                StrokeKind::Trunk => 2.0,
+                _ => 3.0, // Trace
+            };
             // A stroke has at most MAX_STEM_POINTS + 1 points (< 2^24), so
             // the count converts to f32 exactly.
             #[allow(clippy::cast_precision_loss)]
@@ -82,11 +89,17 @@ mod wasm {
             self.put_all(&[p.x, p.y, p.width, p.alpha]);
         }
         fn leaf(&mut self, l: Leaf) {
-            self.put_all(&[CMD_LEAF, l.x, l.y, l.dir_x, l.dir_y, l.size, l.alpha]);
+            let shape = if l.kind == LeafKind::Birch { 1.0 } else { 0.0 };
+            self.put_all(&[CMD_LEAF, l.x, l.y, l.dir_x, l.dir_y, l.size, l.alpha, link(l.link), shape]);
         }
         fn flower(&mut self, f: Flower) {
-            self.put_all(&[CMD_FLOWER, f.x, f.y, f.dir_x, f.dir_y, f.size, f.open, f.alpha]);
+            self.put_all(&[CMD_FLOWER, f.x, f.y, f.dir_x, f.dir_y, f.size, f.open, f.alpha, link(f.link)]);
         }
+    }
+
+    /// A link index as a draw-list value: 0..=63, or -1 for none.
+    fn link(l: Option<u8>) -> f32 {
+        l.map_or(-1.0, f32::from)
     }
 
     struct State {
@@ -123,14 +136,51 @@ mod wasm {
         s.plant.init(w, h, seed);
     }
 
-    /// Advance by `dt` seconds with the pointer at (`mx`, `my`) (`active` = 0
-    /// means the pointer has left), then rebuild the draw list. Returns how
-    /// many floats of the draw list are valid (always ≥ 1).
+    /// Hand out `links` links (clamped to 0..=64) to leaves and flowers, and
+    /// keep the plant when the pointer leaves if `persist` is non-zero.
+    /// Other settings keep their defaults. Takes effect immediately.
+    #[unsafe(no_mangle)]
+    pub extern "C" fn configure(links: u32, persist: i32) {
+        // SAFETY: the only reference to STATE during this call (see `state`).
+        let s = unsafe { state() };
+        let mut c = s.plant.config();
+        c.links = u8::try_from(links).unwrap_or(u8::MAX); // the library clamps to 64
+        c.persist = persist != 0;
+        s.plant.set_config(c);
+    }
+
+    /// Choose the kind of plant: `style` 0 = vine, 1 = circuit birch (any
+    /// other value = vine). `branch_length`, `trunk_height` (0 = automatic)
+    /// and `branch_spacing` are in px; the library clamps them into range.
+    /// A different style restarts the plant from the seed.
+    #[unsafe(no_mangle)]
+    pub extern "C" fn set_style(style: u32, branch_length: f32, trunk_height: f32, branch_spacing: f32) {
+        // SAFETY: the only reference to STATE during this call (see `state`).
+        let s = unsafe { state() };
+        let mut c = s.plant.config();
+        c.style = match style {
+            1 => Style::CircuitBirch,
+            _ => Style::Vine,
+        };
+        c.branch_length = branch_length;
+        c.trunk_height = trunk_height;
+        c.branch_spacing = branch_spacing;
+        s.plant.set_config(c);
+    }
+
+    /// Advance by `dt` seconds, then rebuild the draw list. `active` says
+    /// what the pointer is doing: 0 = gone, 1 = at (`mx`, `my`), 2 = resting
+    /// on a link (hold still). Returns how many floats of the draw list are
+    /// valid (always ≥ 1).
     #[unsafe(no_mangle)]
     pub extern "C" fn tick(dt: f32, mx: f32, my: f32, active: i32) -> usize {
         // SAFETY: the only reference to STATE during this call (see `state`).
         let s = unsafe { state() };
-        s.plant.step(dt, if active != 0 { Some((mx, my)) } else { None });
+        match active {
+            0 => s.plant.step(dt, None),
+            2 => s.plant.rest(dt),
+            _ => s.plant.step(dt, Some((mx, my))),
+        }
         s.out.len = 0;
         s.plant.draw(&mut s.out);
         s.out.put(CMD_END);

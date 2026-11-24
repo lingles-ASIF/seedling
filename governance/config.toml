@@ -42,6 +42,10 @@ required_manifest_fields = ["description", "license", "repository"]
 
 [gate]
 threshold = 95.0
+# The engine keeps its state in zero-initialised memory, so the module stays
+# around 10 KB. A jump to hundreds of KB means state moved into the file's data
+# section (e.g. one non-zero default): fail the build check if it happens.
+max_wasm_bytes = 65536
 fuzz_frames_full = 1000000
 fuzz_frames_fast = 50000
 fuzz_script = "security/fuzz.mjs"

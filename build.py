@@ -24,6 +24,32 @@ WASM = ROOT / "target/wasm32-unknown-unknown/release/seedling_wasm.wasm"
 TEMPLATE = ROOT / "web/template.html"
 OUT = ROOT / "seedling.html"
 PLACEHOLDER = "__WASM_BASE64__"
+SETTINGS_RE = re.compile(r'(<script type="application/json" id="seedling-config">)(.*?)(</script>)', re.S)
+
+# Extra demo pages: the same page with a different settings block (JSON is
+# never executed, so every demo keeps the same Content-Security-Policy).
+REPO = "https://github.com/lingles-ASIF/seedling"
+DEMO_LINKS = """[
+    { "href": "%s", "label": "Source code" },
+    { "href": "%s/blob/main/crates/seedling/README.md", "label": "Use it in Rust" },
+    { "href": "%s/blob/main/CHANGELOG.md", "label": "What's new" },
+    { "href": "%s/blob/main/SECURITY.md", "label": "Security policy" },
+    { "href": "%s/blob/main/AUTHORS.md", "label": "Authors" },
+    { "href": "../seedling.html", "label": "The vine" }
+  ]""" % ((REPO,) * 5)
+DEMOS = {
+    "demos/circuit-birch.html": """
+{
+  "style": "circuit-birch",
+  "branchLength": 160,
+  "trunkHeight": 0,
+  "branchSpacing": 26,
+  "links": %s,
+  "persist": true,
+  "newTab": false
+}
+""" % DEMO_LINKS,
+}
 CSP_PLACEHOLDER = "__CSP__"
 
 
@@ -79,6 +105,11 @@ def embed() -> None:
     OUT.write_text(html, encoding="utf-8")
     print(f"wrote {OUT.name}: {OUT.stat().st_size:,} bytes "
           f"(engine {len(wasm_bytes):,} bytes of WebAssembly)")
+    for rel, settings in DEMOS.items():
+        demo = ROOT / rel
+        demo.parent.mkdir(parents=True, exist_ok=True)
+        demo.write_text(SETTINGS_RE.sub(lambda m: m.group(1) + settings + m.group(3), html, count=1), encoding="utf-8")
+        print(f"wrote {rel}")
 
 
 if __name__ == "__main__":
