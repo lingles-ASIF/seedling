@@ -24,6 +24,25 @@ back underground to wait.
 | `.github/` | CI, release and tracker workflows; issue and PR templates. |
 | `LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE`, `AUTHORS.md` | Dual license and authorship. |
 
+## Growth styles
+
+Pick one with `"style"` in the settings block (see below). Try them:
+`seedling.html` (vine) and `demos/circuit-birch.html`.
+
+| Style | What grows |
+|---|---|
+| `"vine"` (default) | A curving vine that follows the pointer, with leaves and flowers. |
+| `"circuit-birch"` | A circuit-board tree. A straight trunk rises toward the pointer; branches leave it at 45°, then route toward the pointer like circuit traces (straight runs, 45° turns only) and end in birch leaves. Side traces fork off at 45°. The branch you're driving is vivid; branches you leave fade into a faint outline. |
+
+Circuit trees take three extra settings, all in px: `"branchLength"` (longest
+a branch may grow; default 160), `"trunkHeight"` (tallest the trunk may grow;
+0 = as tall as the window allows) and `"branchSpacing"` (vertical gap between
+branches; default 26).
+
+For Rust developers, circuit trees are an optional Cargo feature, so the core
+library stays small: `seedling = { version = "0.1", features = ["circuit"] }`,
+then `Config { style: Style::CircuitBirch, .. }`.
+
 ## Turning leaves into links
 
 Leaves and twig flowers can be links to other pages. Edit the settings block
@@ -79,6 +98,8 @@ See `crates/seedling/README.md` for an example.
 - `grow_min` / `grow_max` - growth speed
 - `flower_chance` - share of twigs that end in a flower instead of a leaf
 - `links` - how many links to hand out to leaves and flowers (up to 64)
+- `style` - `Style::Vine`, or with the `circuit` feature `Style::CircuitBirch`
+- `branch_length` / `trunk_height` / `branch_spacing` - circuit tree sizes
 - `persist` - keep the grown plant when the pointer leaves
 
 Every value is clamped into a safe range, so no setting can break the plant.

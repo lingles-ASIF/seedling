@@ -61,6 +61,16 @@
            false = the plant withers back to the seed (the original behaviour).
            Default: true when there are links, false when there are none.
   newTab   true opens links in a new tab. Default: false.
+  style    "vine" (default): a curving vine that follows the pointer.
+           "circuit-birch": a circuit-board tree. A straight trunk rises toward
+           the pointer; branches route toward it like circuit traces (straight
+           runs, 45-degree turns) and end in birch leaves.
+  branchLength   circuit trees: longest a branch may grow, in px (20-2000).
+                 Default 160.
+  trunkHeight    circuit trees: tallest the trunk may grow, in px; 0 means as
+                 tall as the window allows. Default 0.
+  branchSpacing  circuit trees: vertical gap between branches, in px (8-400).
+                 Default 26.
   The block must stay valid JSON (double quotes, no trailing commas), and must
   never contain the text </script> (it would end the block early): write <\/script>.
   ==============================================================================
@@ -140,13 +150,24 @@ const WASM_BASE64 = "__WASM_BASE64__";
       const label = (typeof item.label === 'string' && item.label.trim().slice(0, 80)) || `Link ${links.length + 1}`;
       if (links.length < MAX_LINKS) links.push({ href, label });
     }
+    const num = (v, dflt) => (typeof v === 'number' && Number.isFinite(v) ? v : dflt);
+    const style = STYLES[raw.style] ?? 0;
+    if (raw.style !== undefined && STYLES[raw.style] === undefined)
+      console.warn(`Seedling: unknown style ${JSON.stringify(raw.style)}; using "vine".`);
     return {
       links,
       persist: typeof raw.persist === 'boolean' ? raw.persist : links.length > 0,
       newTab: raw.newTab === true,
+      style,
+      // The engine clamps these into safe ranges; non-numbers get defaults.
+      branchLength: num(raw.branchLength, 160),
+      trunkHeight: num(raw.trunkHeight, 0),
+      branchSpacing: num(raw.branchSpacing, 26),
     };
   }
+  const STYLES = Object.freeze(Object.assign(Object.create(null), { 'vine': 0, 'circuit-birch': 1 }));
   const SETTINGS = readSettings();
+  wasm.set_style(SETTINGS.style, SETTINGS.branchLength, SETTINGS.trunkHeight, SETTINGS.branchSpacing);
   wasm.configure(SETTINGS.links.length, SETTINGS.persist ? 1 : 0);
 
   // ---- links: hit areas over leaves, and the same links as a keyboard list ----
@@ -201,6 +222,8 @@ const WASM_BASE64 = "__WASM_BASE64__";
   const LEAF = [104, 150, 74], RIB = [170, 198, 140];
   const PETAL = [236, 146, 150], BUD = [112, 150, 82], HEART = [244, 196, 92];
   const LINK_MARK = [214, 170, 96];
+  const TRUNK_TRACE = [46, 92, 80], BRANCH_TRACE = [58, 112, 96]; // circuit-board green
+  const BIRCH = [122, 166, 72], BIRCH_VEIN = [176, 204, 128];
   const LINK_ALPHA = 0.7; // linked shapes never fade below this, so they stay findable
 
   const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
@@ -231,7 +254,22 @@ const WASM_BASE64 = "__WASM_BASE64__";
   window.addEventListener('blur', () => { active = false; });
 
   // ---- shape painters ----
+  function trace(buf, i, kind) {
+    // Circuit traces: straight segments only, square ends, no smoothing.
+    const n = buf[i++] | 0, base = i;
+    ctx.lineCap = 'square';
+    const col = kind === 2 ? TRUNK_TRACE : BRANCH_TRACE;
+    for (let k = 1; k < n; k++) {
+      const p0 = base + (k - 1) * 4, p1 = base + k * 4;
+      ctx.strokeStyle = fogged(col, buf[p1 + 3]);
+      ctx.lineWidth = buf[p1 + 2];
+      ctx.beginPath(); ctx.moveTo(buf[p0], buf[p0 + 1]); ctx.lineTo(buf[p1], buf[p1 + 1]); ctx.stroke();
+    }
+    return base + n * 4;
+  }
+
   function stroke(buf, i, kind) {
+    if (kind >= 2) return trace(buf, i, kind);
     const n = buf[i++] | 0, base = i;
     const P = k => base + k * 4; // x, y, width, alpha
     ctx.lineCap = 'round';
@@ -260,7 +298,37 @@ const WASM_BASE64 = "__WASM_BASE64__";
     ctx.strokeStyle = fogged(LINK_MARK, a); ctx.lineWidth = 1.4; ctx.stroke();
   }
 
-  function leaf(x, y, dx, dy, s, a, link) {
+  function birchLeaf(x, y, dx, dy, s, a, link) {
+    // Birch: a short stalk, then an oval blade with a drawn-out pointed tip
+    // and a finely toothed edge; a midrib and a few straight side veins.
+    const stalk = s * 0.35, L = s * 1.7;
+    if (link >= 0) {
+      a = Math.max(a, LINK_ALPHA);
+      placeLink(link, x + dx * (stalk + L * 0.45), y + dy * (stalk + L * 0.45));
+    }
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.atan2(dy, dx));
+    ctx.strokeStyle = fogged(BIRCH_VEIN, a); ctx.lineWidth = Math.max(0.6, s * 0.07);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(stalk, 0); ctx.stroke();
+    ctx.translate(stalk, 0);
+    const N = 16, half = t => s * 0.62 * Math.sin(Math.PI * Math.pow(t, 0.75)) * Math.pow(1 - t, 0.3);
+    ctx.beginPath(); ctx.moveTo(0, 0);
+    for (let k = 1; k <= N; k++) { const t = k / N; ctx.lineTo(L * t, -(half(t) + (k % 2 ? s * 0.05 : 0))); }
+    for (let k = N - 1; k >= 0; k--) { const t = k / N; ctx.lineTo(L * t, half(t) + (k % 2 ? s * 0.05 : 0)); }
+    ctx.closePath();
+    ctx.fillStyle = fogged(BIRCH, a); ctx.fill();
+    ctx.strokeStyle = fogged(BIRCH_VEIN, a); ctx.lineWidth = Math.max(0.5, s * 0.05);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(L * 0.92, 0);
+    for (const t of [0.25, 0.45, 0.65]) {
+      ctx.moveTo(L * t, 0); ctx.lineTo(L * (t + 0.14), -half(t + 0.14) * 0.75);
+      ctx.moveTo(L * t, 0); ctx.lineTo(L * (t + 0.14), half(t + 0.14) * 0.75);
+    }
+    ctx.stroke();
+    if (link >= 0) { ctx.translate(L * 0.45, 0); linkMark(Math.max(5, s * 0.75), a); }
+    ctx.restore();
+  }
+
+  function leaf(x, y, dx, dy, s, a, link, shape) {
+    if (shape === 1) return birchLeaf(x, y, dx, dy, s, a, link);
     if (link >= 0) {
       a = Math.max(a, LINK_ALPHA);
       placeLink(link, x + dx * s * 0.8, y + dy * s * 0.8);
@@ -354,7 +422,7 @@ const WASM_BASE64 = "__WASM_BASE64__";
       const cmd = buf[i++];
       if (cmd === 0) break;
       else if (cmd === 1) { const kind = buf[i++]; i = stroke(buf, i, kind); }
-      else if (cmd === 2) { leaf(buf[i], buf[i + 1], buf[i + 2], buf[i + 3], buf[i + 4], buf[i + 5], buf[i + 6]); i += 7; }
+      else if (cmd === 2) { leaf(buf[i], buf[i + 1], buf[i + 2], buf[i + 3], buf[i + 4], buf[i + 5], buf[i + 6], buf[i + 7]); i += 8; }
       else if (cmd === 3) { flower(buf[i], buf[i + 1], buf[i + 2], buf[i + 3], buf[i + 4], buf[i + 5], buf[i + 6], buf[i + 7]); i += 8; }
       else if (cmd === 4) { seed = [buf[i], buf[i + 1], buf[i + 2], buf[i + 3]]; i += 4; }
       else break;

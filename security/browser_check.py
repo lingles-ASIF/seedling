@@ -170,7 +170,22 @@ async def main():
             f"{injected_img} <img> elements created")
         await pg.close()
 
-        # ---- 4. Broken settings JSON: the plant still works ----
+        # ---- 4. Circuit birch: a tree grows, its leaves carry links ----
+        pg, errors, _ = await open_page(b, variant(
+            '{ "style": "circuit-birch", "links": [ { "href": "https://example.com/a", "label": "A" },'
+            ' { "href": "https://example.com/b", "label": "B" } ], "persist": true }', tmp, "birch.html"))
+        for k in range(200):
+            t = k / 200
+            await pg.mouse.move(500 + 330 * math.sin(t * 17), 540 - 450 * t)
+            await pg.wait_for_timeout(20)
+        green, waited = await wait_for(pg, COUNT_GREEN, lambda n: n > 500, 10000)
+        links, _ = await wait_for(pg, VISIBLE_LINKS, lambda v: len(v) == 2, 6000)
+        if SHOTS: await pg.screenshot(path=str(SHOTS / "sec_birch.png"))
+        add("circuit birch grows, leaves carry links", green > 500 and len(links) == 2 and not errors,
+            f"{green} green px after {waited} ms; links: {[l['label'] for l in links]}; errors: {errors[:1]}")
+        await pg.close()
+
+        # ---- 5. Broken settings JSON: the plant still works ----
         pg, errors, _ = await open_page(b, variant('{ "links": [ oops', tmp, "broken.html"))
         await sweep(pg)
         green, _ = await wait_for(pg, COUNT_GREEN, lambda n: n > 500, 10000)

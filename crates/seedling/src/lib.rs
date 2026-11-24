@@ -56,7 +56,12 @@
 // `mul_add` (the lint only fires in test builds, where std is linked).
 #![cfg_attr(test, allow(clippy::suboptimal_flops))]
 
+#[cfg(feature = "circuit")]
+mod circuit;
 mod math;
+
+#[cfg(feature = "circuit")]
+pub use circuit::MAX_BRANCHES;
 
 use math::{clamp, dist, fl, norm, rotate, sanitize, sin, smooth, sqrt};
 
@@ -126,6 +131,35 @@ pub struct Config {
     /// `false` (the classic behaviour); pages with links usually want `true`
     /// so visitors can come back and click.
     pub persist: bool,
+    /// Which kind of plant grows. Default [`Style::Vine`]. Changing the style
+    /// with [`Plant::set_config`] starts the plant over from the seed.
+    pub style: Style,
+    /// Circuit trees: longest a branch may grow, px. Default 160; clamped to
+    /// 20..=2000.
+    pub branch_length: f32,
+    /// Circuit trees: tallest the trunk may grow above the crust, px.
+    /// Default 0, meaning "as tall as the window allows"; otherwise clamped to
+    /// 20..=100000.
+    pub trunk_height: f32,
+    /// Circuit trees: vertical distance between branch positions on the
+    /// trunk, px. Default 26; clamped to 8..=400.
+    pub branch_spacing: f32,
+}
+
+/// The kind of plant that grows.
+///
+/// Circuit-board trees need the `circuit` Cargo feature; without it only the
+/// vine exists, and none of the circuit code is compiled in.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Style {
+    /// A curving vine that follows the pointer, with leaves and flowers.
+    #[default]
+    Vine,
+    /// A circuit-board tree: straight trunk, 45°-routed branch traces, birch
+    /// leaves at the ends.
+    #[cfg(feature = "circuit")]
+    CircuitBirch,
 }
 
 impl Config {
@@ -141,6 +175,10 @@ impl Config {
         flower_chance: 0.2,
         links: 0,
         persist: false,
+        style: Style::Vine,
+        branch_length: 160.0,
+        trunk_height: 0.0,
+        branch_spacing: 26.0,
     };
 
     /// All-zero placeholder used inside a blank plant (never applied).
@@ -155,6 +193,10 @@ impl Config {
         flower_chance: 0.0,
         links: 0,
         persist: false,
+        style: Style::Vine,
+        branch_length: 0.0,
+        trunk_height: 0.0,
+        branch_spacing: 0.0,
     };
 
     /// This configuration with every field made finite and within range.
@@ -173,6 +215,14 @@ impl Config {
             flower_chance: sanitize(self.flower_chance, d.flower_chance, 0.0, 1.0),
             links: if self.links > MAX_LINKS { MAX_LINKS } else { self.links },
             persist: self.persist,
+            style: self.style,
+            branch_length: sanitize(self.branch_length, d.branch_length, 20.0, 2000.0),
+            trunk_height: if self.trunk_height > 0.0 {
+                sanitize(self.trunk_height, 0.0, 20.0, 100_000.0)
+            } else {
+                0.0 // 0, negative or NaN: automatic
+            },
+            branch_spacing: sanitize(self.branch_spacing, d.branch_spacing, 8.0, 400.0),
         }
     }
 }
@@ -213,6 +263,22 @@ pub enum StrokeKind {
     Stem,
     /// A side twig carrying a leaf or flower.
     Twig,
+    /// A circuit tree's trunk: a straight vertical trace.
+    Trunk,
+    /// A circuit tree's branch or side trace: straight runs joined by 45°
+    /// corners. Draw it with straight segments, not curves.
+    Trace,
+}
+
+/// The shape of a leaf.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum LeafKind {
+    /// The vine's slender, curved leaf.
+    #[default]
+    Vine,
+    /// A birch leaf: oval with a pointed tip and a finely toothed edge.
+    Birch,
 }
 
 /// The seed beneath the crust.
@@ -262,6 +328,8 @@ pub struct Leaf {
     /// Which link this leaf carries (an index into the developer's list of
     /// [`Config::links`] links), or `None` for a plain leaf.
     pub link: Option<u8>,
+    /// The leaf's shape.
+    pub kind: LeafKind,
 }
 
 /// A flower or bud: at the growing tip, or at the end of a twig.
@@ -355,7 +423,9 @@ pub struct Plant {
     last_side: f32,
     twigs: [Twig; MAX_TWIGS],
     nt: usize,
-    links_used: u64, // bit k set = link k is on a live twig
+    links_used: u64, // bit k set = link k is on a live twig or trace
+    #[cfg(feature = "circuit")]
+    circuit: circuit::Circuit,
     bloom: f32,
     idle: f32,
     t: f32,
@@ -401,6 +471,8 @@ impl Plant {
             twigs: [TWIG0; MAX_TWIGS],
             nt: 0,
             links_used: 0,
+            #[cfg(feature = "circuit")]
+            circuit: circuit::Circuit::BLANK,
             bloom: 0.0,
             idle: 0.0,
             t: 0.0,
@@ -437,9 +509,14 @@ impl Plant {
     }
 
     /// Apply new settings (clamped into range). Takes effect immediately.
-    pub const fn set_config(&mut self, config: Config) {
+    pub fn set_config(&mut self, config: Config) {
+        let restyle = config.style != self.config().style;
         self.cfg = config.sanitized();
         self.cfg_set = true;
+        if restyle && self.n > 0 {
+            self.reset(); // a different kind of plant starts from the seed
+            self.retract_to = 0;
+        }
     }
 
     /// The settings in effect (after clamping).
@@ -463,6 +540,10 @@ impl Plant {
     /// True once a shoot has sprouted (false while only the seed shows).
     #[must_use]
     pub fn has_plant(&self) -> bool {
+        #[cfg(feature = "circuit")]
+        if self.config().style != Style::Vine {
+            return self.circuit_has_plant();
+        }
         self.n > 1 || dist(self.tipx, self.tipy, self.sx, self.sy) > 0.5
     }
 
@@ -504,6 +585,11 @@ impl Plant {
             prominence: if self.has_plant() { 0.35 } else { 1.0 },
         });
         if !self.has_plant() {
+            return;
+        }
+        #[cfg(feature = "circuit")]
+        if self.config().style != Style::Vine {
+            self.circuit_draw(renderer);
             return;
         }
 
@@ -552,6 +638,7 @@ impl Plant {
                         size,
                         alpha,
                         link: self.link_of(tw),
+                        kind: LeafKind::Vine,
                     });
                 }
             }
@@ -587,6 +674,12 @@ impl Plant {
             Drive::Away if self.config().persist => Drive::Rest,
             other => other,
         };
+        #[cfg(feature = "circuit")]
+        if self.config().style != Style::Vine {
+            self.circuit_update(dt, drive);
+            self.heal();
+            return;
+        }
         self.update(dt, drive);
         self.heal();
     }
@@ -607,7 +700,13 @@ impl Plant {
 
     /// The public link index of `tw`, if it has one still within range.
     const fn link_of(&self, tw: &Twig) -> Option<u8> {
-        if tw.link > 0 && tw.link - 1 < self.config().links { Some(tw.link - 1) } else { None }
+        self.link_code(tw.link)
+    }
+
+    /// A stored link code (0 = none, k + 1 = link k) as a public link index,
+    /// if still within the configured count.
+    const fn link_code(&self, code: u8) -> Option<u8> {
+        if code > 0 && code - 1 < self.config().links { Some(code - 1) } else { None }
     }
 
     // xorshift32: small, fast, and good enough to make each plant different.
@@ -644,6 +743,8 @@ impl Plant {
         self.since_twig = 0.0;
         self.next_twig = 30.0;
         self.last_side = 1.0;
+        #[cfg(feature = "circuit")]
+        self.circuit_reset();
     }
 
     /// Defence in depth: if anything ever went non-finite, start over rather
@@ -657,6 +758,8 @@ impl Plant {
             && self.wander.is_finite()
             && self.bloom.is_finite()
             && self.idle.is_finite();
+        #[cfg(feature = "circuit")]
+        let ok = ok && self.circuit_ok();
         if !ok {
             self.reset();
             self.retract_to = 0;
